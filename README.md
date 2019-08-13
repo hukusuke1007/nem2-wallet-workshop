@@ -252,9 +252,265 @@ EXPLORER_URL = 'http://catapult-test.opening-line.jp:8000'
 
 ## ウォレット作成
 
+NEM2-SDKを利用してウォレットを作成します。
+
+「送金先アドレス、公開鍵、秘密鍵」の生成は全てSDKが行なっているため、アプリ側からはSDKのAPIを呼ぶだけです。
+
+src/infrastructure/datasource/WalletDataSource.ts の createWallet 関数を実装していきます。
+
+```typescript
+const account = Account.generateNewAccount(this.nemNode.network)
+```
+
+作成されたウォレット情報が account の中にあるので「送金先アドレス、公開鍵、秘密鍵、ネットワークタイプ」を Walletクラス に入れ直します。
+
+
+```typescript
+const wallet = new Wallet(
+  account.address.plain(),
+  account.publicKey,
+  account.privateKey,
+  account.address.networkType.valueOf(),
+)
+```
+
+
+ブラウザ上のローカルストレージに保存します。保存形式はJSON形式で保存します。
+
+```typescript
+await localForage.setItem(this.localStorageKey, wallet.toJSON())
+```
+
+
+全体の実装は以下の通りです。
+
+
+```typescript
+async createWallet() {
+  const account = Account.generateNewAccount(this.nemNode.network)
+  const wallet = new Wallet(
+    account.address.plain(),
+    account.publicKey,
+    account.privateKey,
+    account.address.networkType.valueOf(),
+  )
+  await localForage.setItem(this.localStorageKey, wallet.toJSON())
+  return wallet
+}
+```
+
+実装後、yarn serveで立ち上げてください。
+
+ブラウザの検証ツールより、ローカルストレージを確認して nem2-wallet-workshop のkeyに紐づいて JSON形式でウォレットが保存されていれば成功です。
+
+<a href="https://imgur.com/rVSTw4l"><img src="https://i.imgur.com/rVSTw4l.png" width="70%" height="70%" /></a>
+
+
+保存したウォレットの取得処理を実装します。
+
+src/infrastructure/datasource/WalletDataSource.ts の loadWallet 関数を実装していきます。
+
+ローカルストレージから先ほど保存したウォレットに紐づく key を指定して取得します。
+
+```typescript
+const item: any = await localForage.getItem(this.localStorageKey)
+```
+
+
+取得したウォレットはJSONのままですので、Walletクラス に入れ直します。
+
+```typescript
+if (item !== null) {
+  return new Wallet(
+    'address' in item ? item.address : undefined,
+    'publicKey' in item ? item.publicKey : undefined,
+    'privateKey' in item ? item.privateKey : undefined,
+    'networkType' in item ? item.networkType : undefined,
+  )
+} else {
+  return undefined
+}
+```
+
+全体の実装は以下の通りです。
+
+```typescript
+async loadWallet() {
+  const item: any = await localForage.getItem(this.localStorageKey)
+  if (item !== null) {
+    return new Wallet(
+      'address' in item ? item.address : undefined,
+      'publicKey' in item ? item.publicKey : undefined,
+      'privateKey' in item ? item.privateKey : undefined,
+      'networkType' in item ? item.networkType : undefined,
+    )
+  } else {
+    return undefined
+  }
+}
+```
+
+HomePage.vue の画面上に送金先アドレス（40文字の英数字）が表示されれば成功です。
+
 ## 残高取得
 
+ウォレットの残高取得処理を実装します。
+
+実装する前に、ウォレット作成で作った送金先アドレスへテストネット用のNEMを送りましょう。
+
+以下のFaucet URLにアクセスして、送金先アドレスと送る数量を設定して CLAIM! を選択してください。<br>
+（HomePage.vueの画面の上部からFaucetへアクセスすることもできます）
+
+https://ol-catapult-faucet.herokuapp.com/
+
+<a href="https://imgur.com/eUBPpUr"><img src="https://i.imgur.com/eUBPpUr.png" width="60%" height="60%" /></a>
+
+
+では、残高取得処理を実装します。
+
+src/infrastructure/datasource/WalletDataSource.ts の loadBalance 関数を実装していきます。
+
+残高はブロックチェーンノードをアクセスして取得するため、非同期処理になります。
+
+NEM2-SDKではこの非同期処理を RxJS を利用して結果を返すようにしています。
+
+本ウォレット内では非同期処理を容易に扱うため infrastructure層では RxJS で結果を受け取った後に Promise を使って domain層 へ結果を返すようにします。
+
+
+mosaicsAmountViewFromAddress を用いて送金先アドレスが保持する全ての 残高 を取得します。
+
+なお、accountHttpにあるgetAccountInfoからも残高を取得することができますが、NEM以外のモザイクの残高は取得できないため、ここではmosaicsAmountViewFromAddressを利用します。
+
+
+```typescript
+const address = Address.createFromRawAddress(addr)
+this.mosaicService.mosaicsAmountViewFromAddress(address)
+  .pipe(
+    combineAll(),
+    map((items) => items.map((item) => new AssetMosaic(item.fullName(), item.relativeAmount(), item.mosaicInfo.divisibility, item))),
+  ).subscribe(
+    (items) => resolve(items),
+    (error) => reject(error))
+```
+
+mosaicsAmountViewFromAddress はモザイクがそれぞれ独立して流れてくるため combineAll を利用して次のストリームへまとめて流すようにします。
+
+map では AssetMosaicクラス へ入れ直した配列を次のストリームへ流し、resolve で Promiseに結果に入れます。
+
+なお、エラーが発生した場合は reject にエラー内容を入れると、利用側の try - catch の例外処理として動いてくれます。
+
+全体の実装は以下の通りです。
+
+```typescript
+async loadBalance(addr: string): Promise<AssetMosaic[]> {
+  return new Promise((resolve, reject) => {
+    const address = Address.createFromRawAddress(addr)
+    this.mosaicService.mosaicsAmountViewFromAddress(address)
+      .pipe(
+        combineAll(),
+        map((items) => items.map((item) => new AssetMosaic(item.fullName(), item.relativeAmount(), item.mosaicInfo.divisibility, item))),
+      ).subscribe(
+        (items) => resolve(items),
+        (error) => reject(error))
+  })
+}
+```
+
+実装後、HomePage.vue の画面の　Balance を確認すると 16進数のid と 先ほどFaucetで送った数量が表示されます。
+
+この16進数のid が NEM の namespaceId です。
+
+<a href="https://imgur.com/e4QLoDq"><img src="https://i.imgur.com/e4QLoDq.png" width="50%" height="50%" /></a>
+
 ## 送金
+
+送金処理の実装をします。
+
+src/infrastructure/datasource/TransactionDataSource.ts の sendAsset 関数を実装していきます。
+
+送金用のトランザクションを作成します。
+
+TransferTransaction.create を利用します。
+
+「トランザクションの有効期限、送金先のアドレス、送金するモザイクの種類と数量、メッセージ、ネットワークタイプ」を指定して作成します。
+
+```typescript
+const recipientAddress = Address.createFromRawAddress(asset.address)
+const transferTransaction = TransferTransaction.create(
+    Deadline.create(),
+    recipientAddress,
+    [new Mosaic(new MosaicId(asset.mosaicId), UInt64.fromUint(asset.getRawAmount()))],
+    asset.message !== undefined ? PlainMessage.create(asset.message) : PlainMessage.create(''),
+    this.nemNode.network)
+```
+
+なお、今回はNEMとNEM以外のモザイクも送れるよう 第3引数に Mosaic を指定しています。NEMだけを扱いたい場合は NetworkCurrencyMosaic.createRelative(asset.relativeAmount) を指定すればできます。
+
+
+トランザクションを作った後、自身の秘密鍵で署名を行います。
+
+```typescript
+const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
+const signedTransaction = account.sign(transferTransaction, this.nemNode.networkGenerationHash)
+```
+
+
+ブロックチェーンノードへリクエストします。
+
+```typescript
+this.listenerWrapper.loadStatus(account.address.plain(), signedTransaction.hash)
+  .then((response) => resolve(response))
+  .catch((error) => reject(error))
+this.transactionHttp
+  .announce(signedTransaction)
+  .subscribe(
+    (response) => console.log(response),
+    (error) => reject(error))
+```
+
+リクエストの結果は listenerWrapper 経由で返ってきます。
+
+NEM2では announce 後はリクエストの受け取りの応答が返ってきます。実行処理の結果はウェブソケット（Listener）経由で受け取らなければなりません。
+
+Listener をラップしたクラス ListenerWrapper で受け取り処理を実装しています。
+
+全体の実装は以下の通りです。
+
+```typescript
+async sendAsset(privateKey: string, asset: SendAsset): Promise<TransactionResult> {
+  return new Promise((resolve, reject) => {
+    const recipientAddress = Address.createFromRawAddress(asset.address)
+    const transferTransaction = TransferTransaction.create(
+        Deadline.create(),
+        recipientAddress,
+        [new Mosaic(new MosaicId(asset.mosaicId), UInt64.fromUint(asset.getRawAmount()))],
+        asset.message !== undefined ? PlainMessage.create(asset.message) : PlainMessage.create(''),
+        this.nemNode.network)
+    const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
+    const signedTransaction = account.sign(transferTransaction, this.nemNode.networkGenerationHash)
+    // status
+    this.listenerWrapper.loadStatus(account.address.plain(), signedTransaction.hash)
+      .then((response) => resolve(response))
+      .catch((error) => reject(error))
+    this.transactionHttp
+      .announce(signedTransaction)
+      .subscribe(
+        (response) => console.log(response),
+        (error) => reject(error))
+  })
+}
+```
+
+送金処理の動作確認のため、試しに以下のウォレットへNEMを送金してみてください。
+
+```
+SAD5BN2GHYNLK2DIABNJHUTJXGYCVBOXOJX7DQFF
+```
+
+送金後、以下のような画面になると成功です。Balanceの右側の更新アイコンを押下すると最新の残高が画面上に反映されます。
+
+<a href="https://imgur.com/GIDdaOV"><img src="https://i.imgur.com/GIDdaOV.png" width="50%" height="50%" /></a>
+
 
 ## トランザクション履歴取得
 

@@ -32,27 +32,27 @@ export class TransactionDataSource implements TransactionRepository {
   async sendAsset(privateKey: string, asset: SendAsset): Promise<TransactionResult> {
     return new Promise((resolve, reject) => {
       // TODO: 送金
-      resolve(undefined)
-      // const recipientAddress = Address.createFromRawAddress(asset.address)
-      // console.log(asset.getRawAmount())
-      // const transferTransaction = TransferTransaction.create(
-      //     Deadline.create(),
-      //     recipientAddress,
-      //     [new Mosaic(new MosaicId(asset.mosaicId), UInt64.fromUint(asset.getRawAmount()))],
-      //     // [NetworkCurrencyMosaic.createRelative(asset.relativeAmount)],
-      //     asset.message !== undefined ? PlainMessage.create(asset.message) : PlainMessage.create(''),
-      //     this.nemNode.network)
-      // const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
-      // const signedTransaction = account.sign(transferTransaction, this.nemNode.networkGenerationHash)
-      // // status
-      // this.listenerWrapper.loadStatus(account.address.plain(), signedTransaction.hash)
-      //   .then((response) => resolve(response))
-      //   .catch((error) => reject(error))
-      // this.transactionHttp
-      //   .announce(signedTransaction)
-      //   .subscribe(
-      //     (response) => console.log(response),
-      //     (error) => reject(error))
+      // resolve(undefined)
+
+      // commentout
+      const recipientAddress = Address.createFromRawAddress(asset.address)
+      const transferTransaction = TransferTransaction.create(
+          Deadline.create(),
+          recipientAddress,
+          [new Mosaic(new MosaicId(asset.mosaicId), UInt64.fromUint(asset.getRawAmount()))],
+          asset.message !== undefined ? PlainMessage.create(asset.message) : PlainMessage.create(''),
+          this.nemNode.network)
+      const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
+      const signedTransaction = account.sign(transferTransaction, this.nemNode.networkGenerationHash)
+      // status
+      this.listenerWrapper.loadStatus(account.address.plain(), signedTransaction.hash)
+        .then((response) => resolve(response))
+        .catch((error) => reject(error))
+      this.transactionHttp
+        .announce(signedTransaction)
+        .subscribe(
+          (response) => console.log(response),
+          (error) => reject(error))
     })
   }
 
