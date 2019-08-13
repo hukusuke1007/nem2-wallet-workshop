@@ -11,7 +11,6 @@ import { NemNode } from '@/domain/configure/NemNode'
 import { NemHelper } from '@/domain/helper/NemHelper'
 import { TransactionResult } from '@/domain/entity/TransactionResult'
 import { SendAsset } from '@/domain/entity/SendAsset'
-import { empty } from 'rxjs';
 
 export class TransactionDataSource implements TransactionRepository {
   nemNode: NemNode
@@ -20,7 +19,6 @@ export class TransactionDataSource implements TransactionRepository {
   private transactionHttp: TransactionHttp
   private blockHttp: BlockHttp
   private mosaicHttp: MosaicHttp
-  private namespaceHttp: NamespaceHttp
 
   constructor(nemNode: NemNode) {
     this.nemNode = nemNode
@@ -29,31 +27,32 @@ export class TransactionDataSource implements TransactionRepository {
     this.blockHttp = new BlockHttp(nemNode.endpoint)
     this.listenerWrapper = new ListenerWrapper(nemNode.wsEndpoint)
     this.mosaicHttp = new MosaicHttp(nemNode.endpoint)
-    this.namespaceHttp = new NamespaceHttp(nemNode.endpoint)
   }
 
   async sendAsset(privateKey: string, asset: SendAsset): Promise<TransactionResult> {
-    const recipientAddress = Address.createFromRawAddress(asset.address)
-    console.log(asset.getRawAmount())
-    const transferTransaction = TransferTransaction.create(
-        Deadline.create(),
-        recipientAddress,
-        [new Mosaic(new MosaicId(asset.mosaicId), UInt64.fromUint(asset.getRawAmount()))],
-        // [NetworkCurrencyMosaic.createRelative(asset.relativeAmount)],
-        asset.message !== undefined ? PlainMessage.create(asset.message) : PlainMessage.create(''),
-        this.nemNode.network)
-    const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
-    const signedTransaction = account.sign(transferTransaction, this.nemNode.networkGenerationHash)
     return new Promise((resolve, reject) => {
-      // status
-      this.listenerWrapper.loadStatus(account.address.plain(), signedTransaction.hash)
-        .then((response) => resolve(response))
-        .catch((error) => reject(error))
-      this.transactionHttp
-        .announce(signedTransaction)
-        .subscribe(
-          (response) => console.log(response),
-          (error) => reject(error))
+      // TODO: 送金
+      resolve(undefined)
+      // const recipientAddress = Address.createFromRawAddress(asset.address)
+      // console.log(asset.getRawAmount())
+      // const transferTransaction = TransferTransaction.create(
+      //     Deadline.create(),
+      //     recipientAddress,
+      //     [new Mosaic(new MosaicId(asset.mosaicId), UInt64.fromUint(asset.getRawAmount()))],
+      //     // [NetworkCurrencyMosaic.createRelative(asset.relativeAmount)],
+      //     asset.message !== undefined ? PlainMessage.create(asset.message) : PlainMessage.create(''),
+      //     this.nemNode.network)
+      // const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
+      // const signedTransaction = account.sign(transferTransaction, this.nemNode.networkGenerationHash)
+      // // status
+      // this.listenerWrapper.loadStatus(account.address.plain(), signedTransaction.hash)
+      //   .then((response) => resolve(response))
+      //   .catch((error) => reject(error))
+      // this.transactionHttp
+      //   .announce(signedTransaction)
+      //   .subscribe(
+      //     (response) => console.log(response),
+      //     (error) => reject(error))
     })
   }
 
@@ -116,60 +115,62 @@ export class TransactionDataSource implements TransactionRepository {
 
   private _transactionHistory(publicAccount: PublicAccount, query: QueryParams): Promise<TransactionHistoryInfo> {
     return new Promise((resolve, reject) => {
-      let lastTransactionId: string
-      let transactions: TransferTransaction[] = []
-      this.accountHttp.transactions(publicAccount, query)
-        .pipe(
-          map((items) => {
-            // console.log('transactionHistory', items)
-            if (items.length === 0) {
-              resolve(new TransactionHistoryInfo(undefined))
-            }
-            return items
-          }),
-          mergeMap((items) => transactions = items.filter((item) => item instanceof TransferTransaction)
-            .map((item) => item as TransferTransaction)
-            .filter((item) => item.transactionInfo !== undefined && item.transactionInfo instanceof TransactionInfo)),
-          mergeMap((item) => {
-            // console.log('transferTransction', item.mosaics[0].id.toHex(), item.transactionInfo!.hash, item)
-            return zip(
-              of(item),
-              this.blockHttp.getBlockByHeight(item!.transactionInfo!.height.compact()),
-              item!.mosaics[0].id instanceof MosaicId ?
-                this.mosaicHttp.getMosaic(new MosaicId(item!.mosaics[0].id.toHex())).pipe(
-                  map((mosaic) => mosaic.divisibility),
-                  catchError((error) => of(0)), // Errorの場合は0を返すようにする
-                ) : of(6), // NEMの場合はnamespaceIdしかとれないのでof(6)を返すようにする
-            )
-          }),
-          map(([tx, block, divisibility]) => {
-            // console.log('transactionHistory zip', tx, block, divisibility)
-            return of(new TransactionHistory(
-              tx.transactionInfo!.id,
-              tx.mosaics.length !== 0 ? tx.mosaics[0].amount.compact() / Math.pow(10, divisibility) : 0,
-              tx.maxFee.compact(),
-              tx.recipient instanceof Address ? tx.recipient.plain() : '',
-              tx.signer !== undefined ? tx.signer!.address.plain() : '',
-              tx.message.payload,
-              tx !== undefined ? new Date(block.timestamp.compact() + Date.UTC(2016, 3, 1, 0, 0, 0, 0)) : undefined,
-              tx.transactionInfo!.hash,
-              tx,
-            ))
-          }),
-          combineAll(),
-          map((items) => {
-            lastTransactionId = transactions.slice(-1)[0].transactionInfo!.id
-            return new TransactionHistoryInfo(lastTransactionId, items.sort((a, b) => {
-              const aTime = a.date!.getTime()
-              const bTime = b.date!.getTime()
-              if (aTime > bTime) { return -1 }
-              if (aTime < bTime) { return 1 }
-              return 0
-            }))
-          }),
-        ).subscribe(
-          (response) => resolve(response),
-          (error) => reject(error))
+      // TODO: トランザクション履歴取得
+      resolve(undefined)
+      // let lastTransactionId: string
+      // let transactions: TransferTransaction[] = []
+      // this.accountHttp.transactions(publicAccount, query)
+      //   .pipe(
+      //     map((items) => {
+      //       // console.log('transactionHistory', items)
+      //       if (items.length === 0) {
+      //         resolve(new TransactionHistoryInfo(undefined))
+      //       }
+      //       return items
+      //     }),
+      //     mergeMap((items) => transactions = items.filter((item) => item instanceof TransferTransaction)
+      //       .map((item) => item as TransferTransaction)
+      //       .filter((item) => item.transactionInfo !== undefined && item.transactionInfo instanceof TransactionInfo)),
+      //     mergeMap((item) => {
+      //       // console.log('transferTransction', item.mosaics[0].id.toHex(), item.transactionInfo!.hash, item)
+      //       return zip(
+      //         of(item),
+      //         this.blockHttp.getBlockByHeight(item!.transactionInfo!.height.compact()),
+      //         item!.mosaics[0].id instanceof MosaicId ?
+      //           this.mosaicHttp.getMosaic(new MosaicId(item!.mosaics[0].id.toHex())).pipe(
+      //             map((mosaic) => mosaic.divisibility),
+      //             catchError((error) => of(0)), // Errorの場合は0を返すようにする
+      //           ) : of(6), // NEMの場合はnamespaceIdしかとれないのでof(6)を返すようにする
+      //       )
+      //     }),
+      //     map(([tx, block, divisibility]) => {
+      //       // console.log('transactionHistory zip', tx, block, divisibility)
+      //       return of(new TransactionHistory(
+      //         tx.transactionInfo!.id,
+      //         tx.mosaics.length !== 0 ? tx.mosaics[0].amount.compact() / Math.pow(10, divisibility) : 0,
+      //         tx.maxFee.compact(),
+      //         tx.recipient instanceof Address ? tx.recipient.plain() : '',
+      //         tx.signer !== undefined ? tx.signer!.address.plain() : '',
+      //         tx.message.payload,
+      //         tx !== undefined ? new Date(block.timestamp.compact() + Date.UTC(2016, 3, 1, 0, 0, 0, 0)) : undefined,
+      //         tx.transactionInfo!.hash,
+      //         tx,
+      //       ))
+      //     }),
+      //     combineAll(),
+      //     map((items) => {
+      //       lastTransactionId = transactions.slice(-1)[0].transactionInfo!.id
+      //       return new TransactionHistoryInfo(lastTransactionId, items.sort((a, b) => {
+      //         const aTime = a.date!.getTime()
+      //         const bTime = b.date!.getTime()
+      //         if (aTime > bTime) { return -1 }
+      //         if (aTime < bTime) { return 1 }
+      //         return 0
+      //       }))
+      //     }),
+      //   ).subscribe(
+      //     (response) => resolve(response),
+      //     (error) => reject(error))
     })
   }
 

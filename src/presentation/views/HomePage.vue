@@ -133,7 +133,7 @@
               </div>
               <p style="word-break: break-all;" v-html="resultMessage"/>
             </v-flex>
-            <v-flex>
+            <!-- <v-flex>
               <v-card-actions style="word-break: break-all;">
                 <v-card-title>
                   <h3>Aggregate consig list</h3>
@@ -179,7 +179,7 @@
                   </template>
                 </v-data-table>
               </div>
-            </v-flex>
+            </v-flex> -->
             <v-flex>
               <v-card-actions style="word-break: break-all;">
                 <v-card-title>
@@ -325,7 +325,7 @@ export default class HomePage extends Vue {
       this.wallet = await this.loadWalletUseCase.execute()
       this.onLoadBalance()
       this.onLoadTransactionHistory()
-      this.onLoadAggregateConsigList()
+      // this.onLoadAggregateConsigList()
     } catch (error) {
       console.error(error)
     }

@@ -33,21 +33,23 @@ export class AggregateTransactionDataSource implements AggregateTransactionRepos
 
   async requestComplete(privateKey: string, aggregateTransactions: any[]): Promise<TransactionResult> {
     return new Promise((resolve, reject) => {
-      const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
-      const aggregateTransaction = AggregateTransaction.createComplete(
-        Deadline.create(),
-        aggregateTransactions,
-        this.nemNode.network,
-        [])
-      const signedTransaction = account.sign(aggregateTransaction, this.nemNode.networkGenerationHash)
-      // status
-      this.listenerWrapper.loadStatus(account.address.plain(), signedTransaction.hash)
-        .then((response) => resolve(response))
-        .catch((error) => reject(error))
-      this.transactionHttp.announce(signedTransaction)
-          .subscribe(
-            (response) => console.log('request', response),
-            (error) => reject(error))
+      // TODO: モザイク、ネームスペース作成（アグリゲートトランザクション）
+      resolve(undefined)
+      // const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
+      // const aggregateTransaction = AggregateTransaction.createComplete(
+      //   Deadline.create(),
+      //   aggregateTransactions,
+      //   this.nemNode.network,
+      //   [])
+      // const signedTransaction = account.sign(aggregateTransaction, this.nemNode.networkGenerationHash)
+      // // status
+      // this.listenerWrapper.loadStatus(account.address.plain(), signedTransaction.hash)
+      //   .then((response) => resolve(response))
+      //   .catch((error) => reject(error))
+      // this.transactionHttp.announce(signedTransaction)
+      //     .subscribe(
+      //       (response) => console.log('request', response),
+      //       (error) => reject(error))
     })
   }
 

@@ -63,21 +63,21 @@ export class NamespaceDataSource implements NamespaceRepository {
     })
   }
 
-  async createNamespace(name: string, privateKey: string, rentalBlock: number): Promise<TransactionResult> {
-    return new Promise((resolve, reject) => {
-      const registerNamespaceTransaction = this._createNamespaceTx(name, rentalBlock)
-      const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
-      const signedTransaction = account.sign(registerNamespaceTransaction, this.nemNode.networkGenerationHash)
-      // status
-      this.listenerWrapper.loadStatus(account.address.plain(), signedTransaction.hash)
-        .then((response) => resolve(response))
-        .catch((error) => reject(error))
-      this.transactionHttp.announce(signedTransaction)
-        .subscribe(
-          (response) => console.log(response),
-          (error) => reject(error))
-    })
-  }
+  // async createNamespace(name: string, privateKey: string, rentalBlock: number): Promise<TransactionResult> {
+  //   return new Promise((resolve, reject) => {
+  //     const registerNamespaceTransaction = this._createNamespaceTx(name, rentalBlock)
+  //     const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
+  //     const signedTransaction = account.sign(registerNamespaceTransaction, this.nemNode.networkGenerationHash)
+  //     // status
+  //     this.listenerWrapper.loadStatus(account.address.plain(), signedTransaction.hash)
+  //       .then((response) => resolve(response))
+  //       .catch((error) => reject(error))
+  //     this.transactionHttp.announce(signedTransaction)
+  //       .subscribe(
+  //         (response) => console.log(response),
+  //         (error) => reject(error))
+  //   })
+  // }
 
   async createSubNamespace(subName: string, rootName: string, privateKey: string): Promise<TransactionResult> {
     return new Promise((resolve, reject) => {
@@ -100,21 +100,21 @@ export class NamespaceDataSource implements NamespaceRepository {
     })
   }
 
-  async registMosaicToNamespace(name: string, mosaicName: string, privateKey: string): Promise<TransactionResult> {
-    return new Promise((resolve, reject) => {
-      const mosaicAliasTransaction = this._createMosaicToNamespaceTx(name, mosaicName)
-      const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
-      const signedTransaction = account.sign(mosaicAliasTransaction, this.nemNode.networkGenerationHash)
-      // status
-      this.listenerWrapper.loadStatus(account.address.plain(), signedTransaction.hash)
-        .then((response) => resolve(response))
-        .catch((error) => reject(error))
-      this.transactionHttp.announce(signedTransaction)
-          .subscribe(
-            (response) => console.log('registeMosaicToNamespace', response),
-            (error) => reject(error))
-    })
-  }
+  // async registMosaicToNamespace(name: string, mosaicName: string, privateKey: string): Promise<TransactionResult> {
+  //   return new Promise((resolve, reject) => {
+  //     const mosaicAliasTransaction = this._createMosaicToNamespaceTx(name, mosaicName)
+  //     const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
+  //     const signedTransaction = account.sign(mosaicAliasTransaction, this.nemNode.networkGenerationHash)
+  //     // status
+  //     this.listenerWrapper.loadStatus(account.address.plain(), signedTransaction.hash)
+  //       .then((response) => resolve(response))
+  //       .catch((error) => reject(error))
+  //     this.transactionHttp.announce(signedTransaction)
+  //         .subscribe(
+  //           (response) => console.log('registeMosaicToNamespace', response),
+  //           (error) => reject(error))
+  //   })
+  // }
 
   async registNamespaceToAddress(name: string, addr: string, privateKey: string): Promise<TransactionResult> {
     return new Promise((resolve, reject) => {
@@ -140,34 +140,39 @@ export class NamespaceDataSource implements NamespaceRepository {
   }
 
   createNamespaceTxAggregate(privateKey: string, name: string, rentalBlock: number): any {
-    console.log(privateKey, name)
     const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
-    return this._createNamespaceTx(name, rentalBlock).toAggregate(account.publicAccount)
+    // TODO: モザイク、ネームスペース作成（アグリゲートトランザクション
+    return undefined
+    // return this._createNamespaceTx(name, rentalBlock).toAggregate(account.publicAccount)
   }
 
   createMosaicToNamespaceTxAggregate(privateKey: string, namespace: string, mosaicName: string): any {
     const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
-    return this._createMosaicToNamespaceTx(namespace, mosaicName).toAggregate(account.publicAccount)
+    // TODO: モザイク、ネームスペース作成（アグリゲートトランザクション
+    return undefined
+    // return this._createMosaicToNamespaceTx(namespace, mosaicName).toAggregate(account.publicAccount)
   }
 
-  private _createNamespaceTx(name: string, rentalBlock: number): RegisterNamespaceTransaction {
-    const registerNamespaceTransaction = RegisterNamespaceTransaction.createRootNamespace(
-      Deadline.create(),
-      name,
-      UInt64.fromUint(rentalBlock),
-      this.nemNode.network)
-    return registerNamespaceTransaction
-  }
+  // TODO: モザイク、ネームスペース作成（アグリゲートトランザクション
+  // private _createNamespaceTx(name: string, rentalBlock: number): RegisterNamespaceTransaction {
+  //   const registerNamespaceTransaction = RegisterNamespaceTransaction.createRootNamespace(
+  //     Deadline.create(),
+  //     name,
+  //     UInt64.fromUint(rentalBlock),
+  //     this.nemNode.network)
+  //   return registerNamespaceTransaction
+  // }
 
-  private _createMosaicToNamespaceTx(namespace: string, mosaicName: string): AliasTransaction {
-    const mosaicAliasTransaction = AliasTransaction.createForMosaic(
-      Deadline.create(),
-      AliasActionType.Link,
-      new NamespaceId(namespace),
-      new MosaicId(mosaicName),
-      this.nemNode.network)
-    return mosaicAliasTransaction
-  }
+  // TODO: モザイク、ネームスペース作成（アグリゲートトランザクション
+  // private _createMosaicToNamespaceTx(namespace: string, mosaicName: string): AliasTransaction {
+  //   const mosaicAliasTransaction = AliasTransaction.createForMosaic(
+  //     Deadline.create(),
+  //     AliasActionType.Link,
+  //     new NamespaceId(namespace),
+  //     new MosaicId(mosaicName),
+  //     this.nemNode.network)
+  //   return mosaicAliasTransaction
+  // }
 
   private _errorNotFound(error: any) {
     return 'statusCode' in error && error.statusCode === 404 ? true : false

@@ -70,7 +70,83 @@ yarn --version
 git clone https://github.com/hukusuke1007/nem2-wallet-workshop.git
 ```
 
-T.B.D
+cloneすると nem2-wallet-workshop のディレクトリができているので移動します。
+
+```bash
+cd nem2-wallet-workshop
+```
+
+移動後、yarnコマンドを使って依存ライブラリをインストールします。
+
+```bash
+yarn
+```
+
+実行します。
+
+```bash
+yarn serve
+```
+
+ブラウザで http://localhost:8080/ へアクセスし、以下の画面が表示できれば準備完了です。
+
+<a href="https://imgur.com/ZvJRTQb"><img src="https://i.imgur.com/ZvJRTQb.png" width="60%" height="60%" /></a>
+
+### 設計指針
+
+本ウォレットの設計は クリーンアーキテクチャ を採用しています。
+
+presentation層、domain層、infrastructure層に役割を分けて実装しています。
+
+各層の役割は以下の通りです。
+
+
+| 層 | 役割 |
+|:---|:---|
+|presentation | UI/UX部の実装とそれらに依存するロジックを実装します。<br> フォームやボタンの表示や押下イベントをトリガーにdomain層へリクエストします。 |
+|domain | 各機能のロジックを実装します。<br> domain層はインターフェース（repository）を経由してinfrastructure層へリクエストします。|
+|infrastructure | 外部とのやりとりするロジックを実装します。 |
+
+
+
+
+（クリーンアーキテクチャの詳しい説明については割愛します）
+
+
+NEM2-SDK や ローカルストレージなどの外部との直接やりとりは、**infrastructure層**で行います。
+
+
+実装部は provide.ts 上で依存注入（DI）しています。
+
+src/provide.ts 
+
+```typescript
+const host = process.env.NODE_HOST
+const ws = process.env.NODE_WS
+const port = process.env.NODE_PORT
+const network: number = Number(process.env.NETWORK)
+const generateHash = process.env.NETWORK_GENERATION_HASH
+const nemNode = new NemNode(host, ws, port, network, generateHash)
+
+const walletDataSource = new WalletDataSource(nemNode)
+const transactionDataSource = new TransactionDataSource(nemNode)
+const aggregateTransactionDataSource = new AggregateTransactionDataSource(nemNode)
+const mosaicDataSource = new MosaicDataSource(nemNode)
+const namespaceDataSource = new NamespaceDataSource(nemNode)
+
+export const provide = {
+  LoadBalanceUseCase: new LoadBalanceUseCaseImpl(walletDataSource, namespaceDataSource),
+  LoadWalletUseCase: new LoadWalletUseCaseImpl(walletDataSource),
+  SendCoinUseCase: new SendCoinUseCaseImpl(transactionDataSource, walletDataSource),
+  LoadTransactionHistoryUseCase: new LoadTransactionHistoryUseCaseImpl(transactionDataSource, walletDataSource),
+  AssetExchangeUseCase: new AssetExchangeUseCaseImpl(transactionDataSource, walletDataSource, aggregateTransactionDataSource, mosaicDataSource, namespaceDataSource),
+}
+```
+
+
+### ブロックチェーンノードの設定
+
+### 進め方
 
 ## ウォレット作成
 
@@ -99,7 +175,7 @@ Twitter	https://twitter.com/hobbydevelop<br>
 もくdev 東京  https://mokudev-tokyo.connpass.com/<br>
 
 ## 備考
-・NEM2-sdk<br>
+・NEM2-SDK<br>
 [https://nemtech.github.io/ja/index.html](https://nemtech.github.io/ja/index.html)
 
 ・Vue.js公式サイト<br>

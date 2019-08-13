@@ -33,46 +33,45 @@ export class AssetExchangeUseCaseImpl implements AssetExchangeUseCase {
   }
 
   async createAsset(asset: AssetCreation) {
-    let message: string
+    let message: string = ''
     try {
       console.log('asset', asset)
-      const wallet = await this.walletRepository.loadWallet()
-      if (wallet === undefined) { throw new Error('wallet is nothing..') }
-      const privateKey = wallet!.privateKey!
-      const address = wallet!.address!
-      const publicKey = wallet!.publicKey!
-      const namespace = asset.namespace
-      const exchangeAmount = asset.exchangeAmount
+      // TODO: モザイク、ネームスペース作成（アグリゲートトランザクション）
+      // const wallet = await this.walletRepository.loadWallet()
+      // if (wallet === undefined) { throw new Error('wallet is nothing..') }
+      // const privateKey = wallet!.privateKey!
+      // const address = wallet!.address!
+      // const namespace = asset.namespace
 
-      const account = await this.walletRepository.loadAccount(address)
-      console.log('account', account.mosaics)
+      // const account = await this.walletRepository.loadAccount(address)
+      // console.log('account', account.mosaics)
 
-      const status = await this.namespaceRepository.loadNamespace(namespace)
-      console.log('status', status)
-      if (status !== undefined) {
-        return 'Already exist namespace.'
-      }
-      const namespaceTxAggregate = await this.namespaceRepository.createNamespaceTxAggregate(privateKey, namespace, 100)
-      console.log('namespaceTxAggregate', namespaceTxAggregate)
+      // const status = await this.namespaceRepository.loadNamespace(namespace)
+      // console.log('status', status)
+      // if (status !== undefined) {
+      //   return 'Already exist namespace.'
+      // }
+      // const namespaceTxAggregate = await this.namespaceRepository.createNamespaceTxAggregate(privateKey, namespace, 100)
+      // console.log('namespaceTxAggregate', namespaceTxAggregate)
 
-      const mosaicAggregate = await this.mosaicRepository.createMosaicDefinitionTxAggregate(privateKey, asset)
-      const mosaicId: string = mosaicAggregate.mosaicId
-      console.log('mosaicDefinitionTxAggregate', mosaicAggregate)
+      // const mosaicAggregate = await this.mosaicRepository.createMosaicDefinitionTxAggregate(privateKey, asset)
+      // const mosaicId: string = mosaicAggregate.mosaicId
+      // console.log('mosaicDefinitionTxAggregate', mosaicAggregate)
 
-      const mosaicSupplyChangeTxAggregate = await this.mosaicRepository.createMosaicSupplyChangeTxAggregate(privateKey, mosaicId, asset.maxAmount)
-      console.log('mosaicSupplyChangeTxAggregate', mosaicSupplyChangeTxAggregate)
+      // const mosaicSupplyChangeTxAggregate = await this.mosaicRepository.createMosaicSupplyChangeTxAggregate(privateKey, mosaicId, asset.maxAmount)
+      // console.log('mosaicSupplyChangeTxAggregate', mosaicSupplyChangeTxAggregate)
 
-      const mosaicToNamespaceTxAggregate = await this.namespaceRepository.createMosaicToNamespaceTxAggregate(privateKey, namespace, mosaicId)
-      console.log('mosaicToNamespaceTxAggregate', mosaicToNamespaceTxAggregate)
+      // const mosaicToNamespaceTxAggregate = await this.namespaceRepository.createMosaicToNamespaceTxAggregate(privateKey, namespace, mosaicId)
+      // console.log('mosaicToNamespaceTxAggregate', mosaicToNamespaceTxAggregate)
 
-      const result = await this.aggregateRepository.requestComplete(privateKey, [
-        namespaceTxAggregate,
-        mosaicAggregate.aggregate,
-        mosaicSupplyChangeTxAggregate,
-        mosaicToNamespaceTxAggregate,
-      ])
-      message = `SUCCESS: ${result.hash}`
-      console.log('result', message)
+      // const result = await this.aggregateRepository.requestComplete(privateKey, [
+      //   namespaceTxAggregate,
+      //   mosaicAggregate.aggregate,
+      //   mosaicSupplyChangeTxAggregate,
+      //   mosaicToNamespaceTxAggregate,
+      // ])
+      // message = `SUCCESS: ${result.hash}`
+      // console.log('result', message)
     } catch (error) {
       throw error
     }

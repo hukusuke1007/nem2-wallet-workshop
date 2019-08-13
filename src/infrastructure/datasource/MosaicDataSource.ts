@@ -46,71 +46,76 @@ export class MosaicDataSource implements MosaicRepository {
     })
   }
 
-  async createMosaic(privateKey: string, asset: AssetCreation): Promise<MosaicEntity> {
-    return new Promise((resolve, reject) => {
-      const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
-      const mosaicDefinitionTransaction = this._createMosaicDefinitionTx(privateKey, asset).transaction
-      const mosaicSupplyChangeTransaction = this._createMosaicSupplyChangeTx(mosaicDefinitionTransaction.mosaicId.toHex(), asset.maxAmount)
-      const aggregateTransaction = AggregateTransaction.createComplete(
-        Deadline.create(),
-        [
-          mosaicDefinitionTransaction.toAggregate(account.publicAccount),
-          mosaicSupplyChangeTransaction.toAggregate(account.publicAccount),
-        ],
-        this.nemNode.network,
-        [])
-      const signedTransaction = account.sign(aggregateTransaction, this.nemNode.networkGenerationHash)
-      // status
-      this.listenerWrapper.loadStatus(account.address.plain(), signedTransaction.hash)
-        .then((response) => resolve(new MosaicEntity(
-          mosaicDefinitionTransaction.mosaicId.toHex(),
-          account.address.plain(),
-          account.publicAccount.publicKey,
-          asset.divisibility,
-          response.hash),
-        )).catch((error) => reject(error))
-      this.transactionHttp.announce(signedTransaction)
-          .subscribe(
-            (response) => console.log('createMosaic', response, mosaicDefinitionTransaction.mosaicId),
-            (error) => reject(error))
-    })
-  }
+  // async createMosaic(privateKey: string, asset: AssetCreation): Promise<MosaicEntity> {
+  //   return new Promise((resolve, reject) => {
+  //     const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
+  //     const mosaicDefinitionTransaction = this._createMosaicDefinitionTx(privateKey, asset).transaction
+  //     const mosaicSupplyChangeTransaction = this._createMosaicSupplyChangeTx(mosaicDefinitionTransaction.mosaicId.toHex(), asset.maxAmount)
+  //     const aggregateTransaction = AggregateTransaction.createComplete(
+  //       Deadline.create(),
+  //       [
+  //         mosaicDefinitionTransaction.toAggregate(account.publicAccount),
+  //         mosaicSupplyChangeTransaction.toAggregate(account.publicAccount),
+  //       ],
+  //       this.nemNode.network,
+  //       [])
+  //     const signedTransaction = account.sign(aggregateTransaction, this.nemNode.networkGenerationHash)
+  //     // status
+  //     this.listenerWrapper.loadStatus(account.address.plain(), signedTransaction.hash)
+  //       .then((response) => resolve(new MosaicEntity(
+  //         mosaicDefinitionTransaction.mosaicId.toHex(),
+  //         account.address.plain(),
+  //         account.publicAccount.publicKey,
+  //         asset.divisibility,
+  //         response.hash),
+  //       )).catch((error) => reject(error))
+  //     this.transactionHttp.announce(signedTransaction)
+  //         .subscribe(
+  //           (response) => console.log('createMosaic', response, mosaicDefinitionTransaction.mosaicId),
+  //           (error) => reject(error))
+  //   })
+  // }
 
   createMosaicDefinitionTxAggregate(privateKey: string, asset: AssetCreation): MosaicAggregate {
     const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
-    const txInfo = this._createMosaicDefinitionTx(privateKey, asset)
-    return new MosaicAggregate(txInfo.mosaicId, txInfo.transaction.toAggregate(account.publicAccount))
+    // TODO: モザイク、ネームスペース作成（アグリゲートトランザクション
+    return new MosaicAggregate('', undefined)
+    // const txInfo = this._createMosaicDefinitionTx(privateKey, asset)
+    // return new MosaicAggregate(txInfo.mosaicId, txInfo.transaction.toAggregate(account.publicAccount))
   }
 
   createMosaicSupplyChangeTxAggregate(privateKey: string, mosaicId: string, maxAmount: number): any {
     const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
-    return this._createMosaicSupplyChangeTx(mosaicId, maxAmount).toAggregate(account.publicAccount)
+    // TODO: モザイク、ネームスペース作成（アグリゲートトランザクション
+    // return this._createMosaicSupplyChangeTx(mosaicId, maxAmount).toAggregate(account.publicAccount)
   }
 
-  private _createMosaicDefinitionTx(privateKey: string, asset: AssetCreation): MosaicDefinitionTransactionInfo {
-    const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
-    const nonce = MosaicNonce.createRandom()
-    const mosaicId = MosaicId.createFromNonce(nonce, account.publicAccount)
-    const mosaicDefinitionTransaction = MosaicDefinitionTransaction.create(
-        Deadline.create(),
-        nonce,
-        mosaicId,
-        MosaicProperties.create({
-          supplyMutable: asset.supplyMutable,
-          transferable: asset.transferable,
-          divisibility: asset.divisibility,
-          duration: asset.durationCount !== undefined ? UInt64.fromUint(asset.durationCount) : undefined }),
-        this.nemNode.network)
-    return { mosaicId: mosaicId.toHex(), transaction: mosaicDefinitionTransaction }
-  }
+  // TODO: モザイク、ネームスペース作成（アグリゲートトランザクション
+  // private _createMosaicDefinitionTx(privateKey: string, asset: AssetCreation): MosaicDefinitionTransactionInfo {
+  //   const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
+  //   const nonce = MosaicNonce.createRandom()
+  //   const mosaicId = MosaicId.createFromNonce(nonce, account.publicAccount)
+  //   const mosaicDefinitionTransaction = MosaicDefinitionTransaction.create(
+  //       Deadline.create(),
+  //       nonce,
+  //       mosaicId,
+  //       MosaicProperties.create({
+  //         supplyMutable: asset.supplyMutable,
+  //         transferable: asset.transferable,
+  //         divisibility: asset.divisibility,
+  //         duration: asset.durationCount !== undefined ? UInt64.fromUint(asset.durationCount) : undefined }),
+  //       this.nemNode.network)
+  //   return { mosaicId: mosaicId.toHex(), transaction: mosaicDefinitionTransaction }
+  // }
 
-  private _createMosaicSupplyChangeTx(mosaicId: string, maxAmount: number): MosaicSupplyChangeTransaction {
-    const mosaicSupplyChangeTransaction = MosaicSupplyChangeTransaction.create(
-      Deadline.create(),
-      new MosaicId(mosaicId),
-      MosaicSupplyType.Increase,
-      UInt64.fromUint(maxAmount),
-      this.nemNode.network)
-    return mosaicSupplyChangeTransaction
-  }
+  // TODO: モザイク、ネームスペース作成（アグリゲートトランザクション
+  // private _createMosaicSupplyChangeTx(mosaicId: string, maxAmount: number): MosaicSupplyChangeTransaction {
+  //   const mosaicSupplyChangeTransaction = MosaicSupplyChangeTransaction.create(
+  //     Deadline.create(),
+  //     new MosaicId(mosaicId),
+  //     MosaicSupplyType.Increase,
+  //     UInt64.fromUint(maxAmount),
+  //     this.nemNode.network)
+  //   return mosaicSupplyChangeTransaction
+  // }
 }
