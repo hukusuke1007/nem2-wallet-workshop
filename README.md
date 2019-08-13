@@ -59,7 +59,7 @@ yarn --version
 - ウォレット作成
 - 残高取得
 - 送金
-- トランザクション履歴取得
+- 送金トランザクション履歴の取得
 - モザイク、ネームスペース作成（アグリゲートトランザクション）
 - モザイク送信
 
@@ -511,7 +511,7 @@ SAD5BN2GHYNLK2DIABNJHUTJXGYCVBOXOJX7DQFF
 
 <a href="https://imgur.com/GIDdaOV"><img src="https://i.imgur.com/GIDdaOV.png" width="50%" height="50%" /></a>
 
-## トランザクション履歴取得
+## 送金トランザクション履歴の取得
 
 送金履歴の取得処理を実装します。
 
@@ -600,7 +600,7 @@ combineAll(),
 ```
 
 
-最後に後処理です。
+最後に TransactionHistoryInfoクラス にデータを入れ直します。
 
 ページング処理ができるよう最後のトランザクションIDと、先ほど入れ直した TransactionHistory を降順にソートしたものを TransactionHistoryInfo に入れます。
 
