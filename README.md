@@ -393,7 +393,7 @@ this.mosaicService.mosaicsAmountViewFromAddress(address)
     (error) => reject(error))
 ```
 
-mosaicsAmountViewFromAddress はモザイクがそれぞれ独立して流れてくるため combineAll を利用して次のストリームへまとめて流すようにします。
+mosaicsAmountViewFromAddress はモザイクがそれぞれ独立してストリームへ流れてくるため combineAll を利用して次のストリームへまとめて流すようにします。
 
 map では AssetMosaicクラス へ入れ直した配列を次のストリームへ流し、resolve で Promiseに結果に入れます。
 
@@ -488,7 +488,7 @@ async sendAsset(privateKey: string, asset: SendAsset): Promise<TransactionResult
         this.nemNode.network)
     const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
     const signedTransaction = account.sign(transferTransaction, this.nemNode.networkGenerationHash)
-    // status
+
     this.listenerWrapper.loadStatus(account.address.plain(), signedTransaction.hash)
       .then((response) => resolve(response))
       .catch((error) => reject(error))
@@ -507,12 +507,182 @@ async sendAsset(privateKey: string, asset: SendAsset): Promise<TransactionResult
 SAD5BN2GHYNLK2DIABNJHUTJXGYCVBOXOJX7DQFF
 ```
 
-送金後、以下のような画面になると成功です。Balanceの右側の更新アイコンを押下すると最新の残高が画面上に反映されます。
+送金後、以下のような画面になると成功です。ResultにはトランザクションIDが表示されます。Balanceの右側の更新アイコンを押下すると最新の残高が画面上に反映されます。
 
 <a href="https://imgur.com/GIDdaOV"><img src="https://i.imgur.com/GIDdaOV.png" width="50%" height="50%" /></a>
 
-
 ## トランザクション履歴取得
+
+送金履歴の取得処理を実装します。
+
+src/infrastructure/datasource/TransactionDataSource.ts の transactionHistoryAll 関数を実装していきます。
+
+トランザクション履歴の取得は accountHttp の transactions で取得できますが、送金履歴だけを取得するとなると一手間かけなければいけません。
+
+また、取得したトランザクションのタイムスタンプやモザイクの可分性を同時に取得しないといけないため、実装がやや複雑になります。
+
+それらの処理はすべて RxJS の pipe の中で実装していきます。
+
+```typescript
+let lastTransactionId: string
+let transactions: TransferTransaction[] = []
+const publicAccount = PublicAccount.createFromPublicKey(publicKey, this.nemNode.network)
+this.accountHttp.transactions(publicAccount, new QueryParams(limit, id, Order.DESC))
+  .pipe(
+    // これ以降の処理を実装していく...
+```
+
+まずは、取得したトランザクション履歴が空の場合の処理を行います。空の場合は TransactionHistoryInfo に undefined を指定して返します。
+
+```typescript
+map((items) => {
+  if (items.length === 0) {
+    resolve(new TransactionHistoryInfo(undefined))
+  }
+  return items
+}),
+```
+
+
+取得したトランザクションを TransferTransaction のみにフィルタリングして、TransferTransactionの場合は TransferTransaction にキャスト変換します。
+
+さらに、キャスト変換した TransferTransaction の transactionInfo が TransactionInfo のみにフィルタリングして transactions へ入れて、ストリームへ流します。
+
+transactions は 後に配列要素の最後のトランザクションIDを取得するために使用します。
+
+```typescript
+mergeMap((items) => transactions = items.filter((item) => item instanceof TransferTransaction)
+  .map((item) => item as TransferTransaction)
+  .filter((item) => item.transactionInfo !== undefined && item.transactionInfo instanceof TransactionInfo)),
+```
+
+それぞれのトランザクション履歴から タイムスタンプとモザイクの可分性を取得します。
+
+zip を用いて並列リクエストを行います。
+
+第1引数は今までストリームから流れてきたトランザクション履歴、第2引数はトランザクションIDのブロック取得API、第3引数はモザイク情報を取得APIです。
+
+（なお、今回はトランザクション履歴には１つのモザイクのみを扱う前提で実装しています。複数のモザイクが入ったトランザクション履歴がある場合は期待通りに動作しませんので予めご了承ください）
+
+```typescript
+mergeMap((item) => {
+  return zip(
+    of(item),
+    this.blockHttp.getBlockByHeight(item!.transactionInfo!.height.compact()),
+    item!.mosaics[0].id instanceof MosaicId ?
+      this.mosaicHttp.getMosaic(new MosaicId(item!.mosaics[0].id.toHex())).pipe(
+        map((mosaic) => mosaic.divisibility),
+        catchError((error) => of(0)), // Errorの場合は0を返すようにする
+      ) : of(6), // NEMの場合はnamespaceIdしかとれないのでof(6)を返すようにする
+  )
+}),
+```
+
+必要な情報が揃ったので TransactionHistoryクラス に入れ直します。
+
+combineAll で全てのトランザクション履歴が入るまで待ちます。
+
+```typescript
+map(([tx, block, divisibility]) =>
+  of(new TransactionHistory(
+    tx.transactionInfo!.id,
+    tx.mosaics.length !== 0 ? tx.mosaics[0].amount.compact() / Math.pow(10, divisibility) : 0,
+    tx.maxFee.compact(),
+    tx.recipient instanceof Address ? tx.recipient.plain() : '',
+    tx.signer !== undefined ? tx.signer!.address.plain() : '',
+    tx.message.payload,
+    tx !== undefined ? new Date(block.timestamp.compact() + Date.UTC(2016, 3, 1, 0, 0, 0, 0)) : undefined,
+    tx.transactionInfo!.hash,
+    tx,
+  )),
+),
+combineAll(),
+```
+
+
+最後に後処理です。
+
+ページング処理ができるよう最後のトランザクションIDと、先ほど入れ直した TransactionHistory を降順にソートしたものを TransactionHistoryInfo に入れます。
+
+```typescript
+map((items) => {
+  lastTransactionId = transactions.slice(-1)[0].transactionInfo!.id
+  return new TransactionHistoryInfo(lastTransactionId, items.sort((a, b) => {
+    const aTime = a.date!.getTime()
+    const bTime = b.date!.getTime()
+    if (aTime > bTime) { return -1 }
+    if (aTime < bTime) { return 1 }
+    return 0
+  }))
+}),
+```
+
+全体の実装は以下の通りです。
+
+
+```typescript
+async transactionHistoryAll(publicKey: string, limit: number, id?: string): Promise<TransactionHistoryInfo> {
+  return new Promise((resolve, reject) => {
+    let lastTransactionId: string
+    let transactions: TransferTransaction[] = []
+    const publicAccount = PublicAccount.createFromPublicKey(publicKey, this.nemNode.network)
+    this.accountHttp.transactions(publicAccount, new QueryParams(limit, id, Order.DESC))
+      .pipe(
+        map((items) => {
+          if (items.length === 0) {
+            resolve(new TransactionHistoryInfo(undefined))
+          }
+          return items
+        }),
+        mergeMap((items) => transactions = items.filter((item) => item instanceof TransferTransaction)
+          .map((item) => item as TransferTransaction)
+          .filter((item) => item.transactionInfo !== undefined && item.transactionInfo instanceof TransactionInfo)),
+        mergeMap((item) => {
+          return zip(
+            of(item),
+            this.blockHttp.getBlockByHeight(item!.transactionInfo!.height.compact()),
+            item!.mosaics[0].id instanceof MosaicId ?
+              this.mosaicHttp.getMosaic(new MosaicId(item!.mosaics[0].id.toHex())).pipe(
+                map((mosaic) => mosaic.divisibility),
+                catchError((error) => of(0)), // Errorの場合は0を返すようにする
+              ) : of(6), // NEMの場合はnamespaceIdしかとれないのでof(6)を返すようにする
+          )
+        }),
+        map(([tx, block, divisibility]) =>
+          of(new TransactionHistory(
+            tx.transactionInfo!.id,
+            tx.mosaics.length !== 0 ? tx.mosaics[0].amount.compact() / Math.pow(10, divisibility) : 0,
+            tx.maxFee.compact(),
+            tx.recipient instanceof Address ? tx.recipient.plain() : '',
+            tx.signer !== undefined ? tx.signer!.address.plain() : '',
+            tx.message.payload,
+            tx !== undefined ? new Date(block.timestamp.compact() + Date.UTC(2016, 3, 1, 0, 0, 0, 0)) : undefined,
+            tx.transactionInfo!.hash,
+            tx,
+          )),
+        ),
+        combineAll(),
+        map((items) => {
+          lastTransactionId = transactions.slice(-1)[0].transactionInfo!.id
+          return new TransactionHistoryInfo(lastTransactionId, items.sort((a, b) => {
+            const aTime = a.date!.getTime()
+            const bTime = b.date!.getTime()
+            if (aTime > bTime) { return -1 }
+            if (aTime < bTime) { return 1 }
+            return 0
+          }))
+        }),
+      ).subscribe(
+        (response) => resolve(response),
+        (error) => reject(error))
+  })
+}
+```
+
+HomePage.vue の画面からトランザクション履歴の一覧が表示されると成功です。
+
+<a href="https://imgur.com/6RpE6L6"><img src="https://i.imgur.com/6RpE6L6.png" width="50%" height="50%" /></a>
+
 
 ## モザイク、ネームスペース作成（アグリゲートトランザクション）
 
