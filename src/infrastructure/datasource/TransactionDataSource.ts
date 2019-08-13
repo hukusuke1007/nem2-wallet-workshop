@@ -114,7 +114,7 @@ export class TransactionDataSource implements TransactionRepository {
               item!.mosaics[0].id instanceof MosaicId ?
                 this.mosaicHttp.getMosaic(new MosaicId(item!.mosaics[0].id.toHex())).pipe(
                   map((mosaic) => mosaic.divisibility),
-                  catchError((error) => of(0)), // Errorの場合は0を返すようにする
+                  catchError((error) => of(0)), // Errorの場合は暫定対策として0を返すようにする
                 ) : of(6), // NEMの場合はnamespaceIdしかとれないのでof(6)を返すようにする
             )
           }),

@@ -62,6 +62,7 @@ yarn --version
 - 送金トランザクション履歴の取得
 - モザイク、ネームスペース作成（アグリゲートトランザクション）
 - モザイク送信
+- Github Pagesへ公開
 
 ## はじめに
 本ウォレットは0から作り始まるのではなく、予め用意しているリポジトリを利用し、不足部のコードを実装して作り上げていきます。
@@ -558,7 +559,7 @@ mergeMap((items) => transactions = items.filter((item) => item instanceof Transf
 
 それぞれのトランザクション履歴から タイムスタンプとモザイクの可分性を取得します。
 
-zip を用いて並列リクエストを行います。
+zip を用いて並列リクエストを行いストリームへ流します。
 
 第1引数は今までストリームから流れてきたトランザクション履歴、第2引数はトランザクションIDのブロック取得API、第3引数はモザイク情報を取得APIです。
 
@@ -572,7 +573,7 @@ mergeMap((item) => {
     item!.mosaics[0].id instanceof MosaicId ?
       this.mosaicHttp.getMosaic(new MosaicId(item!.mosaics[0].id.toHex())).pipe(
         map((mosaic) => mosaic.divisibility),
-        catchError((error) => of(0)), // Errorの場合は0を返すようにする
+        catchError((error) => of(0)), // Errorの場合は暫定対策として0を返すようにする
       ) : of(6), // NEMの場合はnamespaceIdしかとれないのでof(6)を返すようにする
   )
 }),
@@ -644,7 +645,7 @@ async transactionHistoryAll(publicKey: string, limit: number, id?: string): Prom
             item!.mosaics[0].id instanceof MosaicId ?
               this.mosaicHttp.getMosaic(new MosaicId(item!.mosaics[0].id.toHex())).pipe(
                 map((mosaic) => mosaic.divisibility),
-                catchError((error) => of(0)), // Errorの場合は0を返すようにする
+                catchError((error) => of(0)), // Errorの場合は暫定対策として0を返すようにする
               ) : of(6), // NEMの場合はnamespaceIdしかとれないのでof(6)を返すようにする
           )
         }),
