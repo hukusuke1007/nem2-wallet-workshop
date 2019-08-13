@@ -64,13 +64,15 @@ yarn --version
 - モザイク送信
 
 ## はじめに
-今回利用するgitリポジトリをcloneします。
+本ウォレットは0から作り始まるのではなく、予め用意しているリポジトリを利用し、不足部のコードを実装して作り上げていきます。
+
+まずは、利用する gitリポジトリ を clone します。
 
 ```bash
 git clone https://github.com/hukusuke1007/nem2-wallet-workshop.git
 ```
 
-cloneすると nem2-wallet-workshop のディレクトリができているので移動します。
+clone すると nem2-wallet-workshop のディレクトリができているので移動します。
 
 ```bash
 cd nem2-wallet-workshop
@@ -90,11 +92,81 @@ yarn serve
 
 ブラウザで http://localhost:8080/ へアクセスし、以下の画面が表示できれば準備完了です。
 
-<a href="https://imgur.com/ZvJRTQb"><img src="https://i.imgur.com/ZvJRTQb.png" width="60%" height="60%" /></a>
+<a href="https://imgur.com/ZvJRTQb"><img src="https://i.imgur.com/ZvJRTQb.png" width="50%" height="50%" /></a>
+
+ディレクトリ構成は以下の通りです。
+
+```bash
+├── README.md
+├── src
+│   ├── App.vue
+│   ├── assets
+│   │   └── logo.png
+│   ├── domain
+│   │   ├── configure
+│   │   │   └── NemNode.ts
+│   │   ├── entity
+│   │   │   ├── AggregateConsig.ts
+│   │   │   ├── AggregateConsigInfo.ts
+│   │   │   ├── AggregateEscrowDTO.ts
+│   │   │   ├── AssetCreation.ts
+│   │   │   ├── AssetForm.ts
+│   │   │   ├── AssetMosaic.ts
+│   │   │   ├── MosaicAggregate.ts
+│   │   │   ├── MosaicDTO.ts
+│   │   │   ├── MosaicEntity.ts
+│   │   │   ├── NamespaceEntity.ts
+│   │   │   ├── SendAsset.ts
+│   │   │   ├── TransactionError.ts
+│   │   │   ├── TransactionHistory.ts
+│   │   │   ├── TransactionHistoryInfo.ts
+│   │   │   ├── TransactionResult.ts
+│   │   │   └── Wallet.ts
+│   │   ├── helper
+│   │   │   └── NemHelper.ts
+│   │   ├── repository
+│   │   │   ├── AggregateTransactionRepository.ts
+│   │   │   ├── MosaicRepository.ts
+│   │   │   ├── NamespaceRepository.ts
+│   │   │   ├── TransactionRepository.ts
+│   │   │   └── WalletRepository.ts
+│   │   └── usecase
+│   │       ├── AssetExchangeUseCase.ts
+│   │       ├── LoadBalanceUseCase.ts
+│   │       ├── LoadTransactionHistoryUseCase.ts
+│   │       ├── LoadWalletUseCase.ts
+│   │       └── SendCoinUseCase.ts
+│   ├── infrastructure
+│   │   ├── datasource
+│   │   │   ├── AggregateTransactionDataSource.ts
+│   │   │   ├── MosaicDataSource.ts
+│   │   │   ├── NamespaceDataSource.ts
+│   │   │   ├── TransactionDataSource.ts
+│   │   │   └── WalletDataSource.ts
+│   │   └── wrapper
+│   │       └── ListenerWrapper.ts
+│   ├── main.ts
+│   ├── presentation
+│   │   └── views
+│   │       ├── AssetExchangePage.vue
+│   │       ├── HomePage.vue
+│   │       └── TransactionPage.vue
+│   ├── provide.ts
+│   ├── registerServiceWorker.ts
+│   ├── router.ts
+│   ├── shims-tsx.d.ts
+│   ├── shims-vue.d.ts
+│   └── store.ts
+├── tsconfig.json
+├── tslint.json
+├── vue.config.js
+└── yarn.lock
+```
+
 
 ### 設計指針
 
-本ウォレットの設計は クリーンアーキテクチャ を採用しています。
+本ウォレットは クリーンアーキテクチャ を採用しています。
 
 presentation層、domain層、infrastructure層に役割を分けて実装しています。
 
@@ -108,7 +180,9 @@ presentation層、domain層、infrastructure層に役割を分けて実装して
 |infrastructure | 外部とのやりとりするロジックを実装します。 |
 
 
+各層の関係性を示すために、例として HomePage.vue 上にNEM2-SDKライブラリ経由でウォレットの残高を取得する設計図を示します。
 
+<a href="https://imgur.com/XcgNmje"><img src="https://i.imgur.com/XcgNmje.png" width="70%" height="70%" /></a>
 
 （クリーンアーキテクチャの詳しい説明については割愛します）
 
@@ -146,7 +220,35 @@ export const provide = {
 
 ### ブロックチェーンノードの設定
 
-### 進め方
+.env で設定しています。
+
+```bash
+# Network
+#  MAIN_NET = 104
+#  TEST_NET = 152
+#  MIJIN = 96
+#  MIJIN_TEST = 144
+NETWORK = 144
+
+# Node URL
+NODE_HOST = 'https://catapult-test.opening-line.jp'
+NODE_WS = 'wss://catapult-test.opening-line.jp'
+NODE_PORT = '3001'
+
+# Generation hash
+# ex. http://elephant.48gh23s.xyz:3000/block/1 is meta.generationHash
+NETWORK_GENERATION_HASH = '453052FDC4EB23BF0D7280C103F7797133A633B68A81986165B76FCE248AB235'
+
+# Faucet. It cloud get a xem of catapult.
+FAUCET_URL = 'https://ol-catapult-faucet.herokuapp.com/'
+
+# Blockchain explorer.
+EXPLORER_URL = 'http://catapult-test.opening-line.jp:8000'
+```
+
+本ウォレットはテストネットを利用しています。
+
+今後、メインネットが稼働しましたら .env の設定を変更するだけで、容易にメインネットへの切り替えができます。
 
 ## ウォレット作成
 
