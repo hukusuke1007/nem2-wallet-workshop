@@ -696,7 +696,7 @@ HomePage.vue の画面からトランザクション履歴の一覧が表示さ�
 
 またモザイクとネームスペースとの紐付けも行い、アグリゲートトランザクションを使って一括で実行できるようにします。
 
-### モザイク作成のトランザクション作成
+### モザイク作成のトランザクション
 
 src/infrastructure/datasource/MosaicDataSource.ts の createMosaicDefinitionTxAggregate 関数を実装していきます。
 
@@ -771,7 +771,7 @@ createMosaicSupplyChangeTxAggregate(privateKey: string, mosaicId: string, maxAmo
 }
 ```
 
-### ネームスペース作成のトランザクション作成
+### ネームスペース作成のトランザクション
 
 src/infrastructure/datasource/NamespaceDataSource.ts の createNamespaceTxAggregate 関数を実装していきます。
 
