@@ -1,14 +1,14 @@
 {
-  "name": "nem2-wallet",
-  "short_name": "nem2-wallet",
+  "name": "nem2-wallet-workshop-answer",
+  "short_name": "nem2-wallet-workshop-answer",
   "icons": [
     {
-      "src": "/nem2-wallet/img/icons/android-chrome-192x192.png",
+      "src": "/nem2-wallet-workshop-answer/img/icons/android-chrome-192x192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/nem2-wallet/img/icons/android-chrome-512x512.png",
+      "src": "/nem2-wallet-workshop-answer/img/icons/android-chrome-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
     }

@@ -1036,19 +1036,19 @@ https://github.com/
 GitHubを開き、New repository（ https://github.com/new ）を選択してください。
 
 
-リポジトリ名や説明は適当な名前を入力してください。
+リポジトリ名を nem2-wallet-workshop-answer にして作成してください。
 
-<a href="https://imgur.com/GDrkRFB"><img src="https://i.imgur.com/GDrkRFB.png" width="40%" height="40%" /></a>
+<a href="https://imgur.com/JvgIPnv"><img src="https://i.imgur.com/JvgIPnv.png" width="40%" height="40%" /></a>
 
 
 作成すると以下のような画面になります。
 
-<a href="https://imgur.com/0IXf4Bh"><img src="https://i.imgur.com/0IXf4Bh.png" width="40%" height="40%" /></a>
+<a href="https://imgur.com/skvRABl"><img src="https://i.imgur.com/skvRABl.png" width="40%" height="40%" /></a>
 
 
 次に、ローカルリポジトリを作成してリモートリポジトリへプッシュします。
 
-こちらで用意したGitからcloneして取り入れているため .git ディレクトリを削除します。
+cloneして取り入れているため、 .git ディレクトリを削除します。
 
 作業していたディレクトリへ移動して以下のコマンドを実行してください。
 
@@ -1056,29 +1056,78 @@ GitHubを開き、New repository（ https://github.com/new ）を選択してく
 rm -rf .git
 ```
 
-削除後、以下のコマンドを入力してローカルリポジトリを作成します。
+削除後、以下のコマンドを入力してローカルリポジトリを作成してリモートリポジトリへプッシュします。
 
 ```bash
 git init
 git add *
 git commit -m "first commit"
-git branch -a
-* master
-  remotes/origin/master
-```
-
-ローカルリポジトリができました。
-
-次に、リモートリポジトリへプッシュします。
-
-```bash
-git remote add origin https://github.com/hukusuke1007/nem2-workshop-answer.git
+git remote add origin https://github.com/hukusuke1007/nem2-wallet-workshop-answer.git
 git push -u origin master
-```
 
-fatal: remote origin already exists. と怒られても問題ありません。そのままgit push -u origin masterをしてください。
+Enumerating objects: 89, done.
+Counting objects: 100% (89/89), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (82/82), done.
+Writing objects: 100% (89/89), 585.05 KiB | 15.81 MiB/s, done.
+Total 89 (delta 5), reused 0 (delta 0)
+remote: Resolving deltas: 100% (5/5), done.
+To https://github.com/hukusuke1007/nem2-wallet-workshop-answer.git
+ * [new branch]      master -> master
+Branch 'master' set up to track remote branch 'master' from 'origin'.
+```
 
 プッシュすると、先ほど作ったGithubのリポジトリにソースコードがアップロードされていることが確認できます。
+
+### 静的ページを公開する
+
+リポジトリの準備はできたので、静的ページを公開します。
+
+今まで実装したコードを公開できる静的ページに変換します。
+
+作業していたディレクトリへ移動し、以下のコマンドを実行してください。
+
+```bash
+yarn build
+```
+
+docsディレクトリが作成されていることを確認してください。
+
+```bash
+ls
+LICENSE			docs			postcss.config.js	tsconfig.json		yarn.lock
+README.md		node_modules		public			tslint.json
+desgin.key		package.json		src			vue.config.js
+```
+
+Githubへプッシュします。
+
+```bash
+git add *
+git commit -m "create docs"
+git push origin HEAD
+```
+
+
+次に、Githubを開き、リポジトリのSettingよりGithub Pagesを有効にします。
+
+指定するディレクトリを docs にします。
+
+<a href="https://imgur.com/ssFkTAj"><img src="https://i.imgur.com/ssFkTAj.png" width="40%" height="40%" /></a>
+
+生成されたURLをアクセスするとウォレットが表示されます。
+
+https://hukusuke1007.github.io/nem2-wallet-workshop-answer/
+
+
+<a href="https://imgur.com/F0x2QoM"><img src="https://i.imgur.com/F0x2QoM.png" width="40%" height="40%" /></a>
+
+
+お疲れ様でした。これで作成したNEM2ウォレットがウェブ上に公開できました。
+
+Githubドメインになったため、localhostで作成していたウォレットとは別のウォレットが作成されます。
+
+http://localhost:8080/ 環境も立ち上げて、localhostのウォレットからGithubドメインのウォレットへ送金して遊んでみてください。
 
 
 ## 著者
@@ -1102,4 +1151,4 @@ Twitter	https://twitter.com/hobbydevelop<br>
 [https://jp.vuejs.org/index.html](https://jp.vuejs.org/index.html)
 
 ・Node.js公式サイト<br>
-[https://nodejs.org/ja/)](https://nodejs.org/ja/)
+[https://nodejs.org/ja/](https://nodejs.org/ja/)
