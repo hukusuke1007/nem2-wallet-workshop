@@ -888,15 +888,13 @@ async requestComplete(privateKey: string, aggregateTransactions: any[]): Promise
 
 src/infrastructure/datasource/AssetExchangeUseCase.ts の createAsset 関数を実装していきます。
 
-まずは、ネームスペース名、ウォレット、アカウントの情報等を用意します。
+まずは、ネームスペース名、ウォレットを用意します。
 
 ```typescript
 const wallet = await this.walletRepository.loadWallet()
 if (wallet === undefined) { throw new Error('wallet is nothing..') }
 const privateKey = wallet!.privateKey!
-const address = wallet!.address!
 const namespace = asset.namespace
-const account = await this.walletRepository.loadAccount(address)
 ```
 
 作成するモザイクのネームスペースが重複していないか確認します。
