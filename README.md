@@ -7,7 +7,7 @@
 iOS/Android/Webアプリ開発をしているフリーランスエンジニアです。また、ブロックチェーンを用いたプロダクト開発も行っております。
 
 
-今回はVue.js + TypeScript + NEM2-SDKを用いてWebウォレットを作成します。
+Vue.js + TypeScript + NEM2-SDKを用いてWebウォレットを作成します。
 
 予め用意している gitリポジトリ を clone してウォレット機能を実装していきます。
 
@@ -93,7 +93,7 @@ yarn serve
 
 ブラウザで http://localhost:8080/ へアクセスし、以下の画面が表示できれば準備完了です。
 
-<a href="https://imgur.com/ZvJRTQb"><img src="https://i.imgur.com/ZvJRTQb.png" width="50%" height="50%" /></a>
+<a href="https://imgur.com/ZvJRTQb"><img src="https://i.imgur.com/ZvJRTQb.png" width="40%" height="40%" /></a>
 
 ディレクトリ構成は以下の通りです。
 
@@ -425,7 +425,7 @@ async loadBalance(addr: string): Promise<AssetMosaic[]> {
 
 この16進数のid が NEM の namespaceId です。
 
-<a href="https://imgur.com/e4QLoDq"><img src="https://i.imgur.com/e4QLoDq.png" width="50%" height="50%" /></a>
+<a href="https://imgur.com/e4QLoDq"><img src="https://i.imgur.com/e4QLoDq.png" width="40%" height="40%" /></a>
 
 ## 送金
 
@@ -512,7 +512,7 @@ SAD5BN2GHYNLK2DIABNJHUTJXGYCVBOXOJX7DQFF
 
 送金後、以下のような画面になると成功です。ResultにはトランザクションIDが表示されます。Balanceの右側の更新アイコンを押下すると最新の残高が画面上に反映されます。
 
-<a href="https://imgur.com/GIDdaOV"><img src="https://i.imgur.com/GIDdaOV.png" width="50%" height="50%" /></a>
+<a href="https://imgur.com/GIDdaOV"><img src="https://i.imgur.com/GIDdaOV.png" width="40%" height="40%" /></a>
 
 ## 送金トランザクション履歴の取得
 
@@ -532,7 +532,7 @@ let transactions: TransferTransaction[] = []
 const publicAccount = PublicAccount.createFromPublicKey(publicKey, this.nemNode.network)
 this.accountHttp.transactions(publicAccount, new QueryParams(limit, id, Order.DESC))
   .pipe(
-    // これ以降の処理を実装していく...
+    // これ以降の処理を実装していく
 ```
 
 まずは、取得したトランザクション履歴が空の場合の処理を行います。空の場合は TransactionHistoryInfo に undefined を指定して返します。
@@ -583,7 +583,7 @@ mergeMap((item) => {
 
 必要な情報が揃ったので TransactionHistoryクラス に入れ直します。
 
-combineAll で全てのトランザクション履歴が入るまで待ちます。
+combineAll で全てのトランザクション履歴が流れてくるまで待ちます。
 
 ```typescript
 map(([tx, block, divisibility]) =>
@@ -684,7 +684,7 @@ async transactionHistoryAll(publicKey: string, limit: number, id?: string): Prom
 
 HomePage.vue の画面からトランザクション履歴の一覧が表示されると成功です。
 
-<a href="https://imgur.com/6RpE6L6"><img src="https://i.imgur.com/6RpE6L6.png" width="50%" height="50%" /></a>
+<a href="https://imgur.com/6RpE6L6"><img src="https://i.imgur.com/6RpE6L6.png" width="40%" height="40%" /></a>
 
 
 ## モザイク、ネームスペース作成（アグリゲートトランザクション）
@@ -881,38 +881,204 @@ async requestComplete(privateKey: string, aggregateTransactions: any[]): Promise
 
 モザイク作成、ネームスペース作成、モザイクとネームスペースの紐付けの処理は実装できたので、これらを操作するロジックを実装します。
 
-これらはアプリの「オリジナルアセットを作成する」という機能になるため、そのビジネスロジックはdomain層のUseCaseで実装します。
+「オリジナルアセットを作成する」という機能になるため、そのビジネスロジックはdomain層のUseCaseで実装します。
 
+src/infrastructure/datasource/AssetExchangeUseCase.ts の createAsset 関数を実装していきます。
 
+まずは、ネームスペース名、ウォレット、アカウントの情報等を用意します。
+
+```typescript
+const wallet = await this.walletRepository.loadWallet()
+if (wallet === undefined) { throw new Error('wallet is nothing..') }
+const privateKey = wallet!.privateKey!
+const address = wallet!.address!
+const namespace = asset.namespace
+const account = await this.walletRepository.loadAccount(address)
+```
+
+作成するモザイクのネームスペースが重複していないか確認します。
+
+```typescript
+const status = await this.namespaceRepository.loadNamespace(namespace)
+console.log('status', status)
+if (status !== undefined) {
+  return 'Already exist namespace.'
+}
+```
+
+トランザクションを作成します。先ほど実装した「ネームスペース作成、モザイク作成、モザイク供給量変更、モザイクとネームスペースの紐付け」を利用します。
 
 
 ```typescript
+const namespaceTxAggregate = await this.namespaceRepository.createNamespaceTxAggregate(privateKey, namespace, 100)
+
+const mosaicAggregate = await this.mosaicRepository.createMosaicDefinitionTxAggregate(privateKey, asset)
+const mosaicId: string = mosaicAggregate.mosaicId
+
+const mosaicSupplyChangeTxAggregate = await this.mosaicRepository.createMosaicSupplyChangeTxAggregate(privateKey, mosaicId, asset.maxAmount)
+
+const mosaicToNamespaceTxAggregate = await this.namespaceRepository.createMosaicToNamespaceTxAggregate(privateKey, namespace, mosaicId)
 ```
 
-```typescript
-```
+そしてこれらのトランザクションをアグリゲートコンプリートとしてリクエストします。
 
 ```typescript
+const result = await this.aggregateRepository.requestComplete(privateKey, [
+  namespaceTxAggregate,
+  mosaicAggregate.aggregate,
+  mosaicSupplyChangeTxAggregate,
+  mosaicToNamespaceTxAggregate,
+])
 ```
 
-```typescript
-```
+全体の実装は以下の通りです。
 
 ```typescript
+async createAsset(asset: AssetCreation) {
+  let message: string = ''
+  try {
+    const wallet = await this.walletRepository.loadWallet()
+    if (wallet === undefined) { throw new Error('wallet is nothing..') }
+    const privateKey = wallet!.privateKey!
+    const address = wallet!.address!
+    const namespace = asset.namespace
+    const account = await this.walletRepository.loadAccount(address)
+
+    const status = await this.namespaceRepository.loadNamespace(namespace)
+    console.log('status', status)
+    if (status !== undefined) {
+      return 'Already exist namespace.'
+    }
+
+    const namespaceTxAggregate = await this.namespaceRepository.createNamespaceTxAggregate(privateKey, namespace, 100)
+
+    const mosaicAggregate = await this.mosaicRepository.createMosaicDefinitionTxAggregate(privateKey, asset)
+    const mosaicId: string = mosaicAggregate.mosaicId
+
+    const mosaicSupplyChangeTxAggregate = await this.mosaicRepository.createMosaicSupplyChangeTxAggregate(privateKey, mosaicId, asset.maxAmount)
+
+    const mosaicToNamespaceTxAggregate = await this.namespaceRepository.createMosaicToNamespaceTxAggregate(privateKey, namespace, mosaicId)
+
+    const result = await this.aggregateRepository.requestComplete(privateKey, [
+      namespaceTxAggregate,
+      mosaicAggregate.aggregate,
+      mosaicSupplyChangeTxAggregate,
+      mosaicToNamespaceTxAggregate,
+    ])
+    message = `SUCCESS: ${result.hash}`
+  } catch (error) {
+    throw error
+  }
+  return message
+}
 ```
 
-```typescript
-```
+AssetExchangePage.vue の画面上のフォームに作成するモザイクの情報を入力してください（TOP画面 Menuの Exchange Asset のリンクから遷移できます）。
 
-```typescript
-```
+今回はお手軽に作成できるようネームスペース名と供給量のみ入力できるようにしています。
 
-```typescript
-```
+好きなネームスペース名を入力し、供給量を入力後 Create ボタンを選択してください。
+
+<a href="https://imgur.com/IGm6WcJ"><img src="https://i.imgur.com/IGm6WcJ.png" width="50%" height="50%" /></a>
+
+少し時間がかかりますが、以下のようにToastが表示されれば成功です。
+
+<a href="https://imgur.com/LKgHJcI"><img src="https://i.imgur.com/LKgHJcI.png" width="50%" height="50%" /></a>
+
+TOP画面に戻り、残高に反映されているか確認できます。
+
+<a href="https://imgur.com/wSqOj9f"><img src="https://i.imgur.com/wSqOj9f.png" width="40%" height="40%" /></a>
+
+（本当はネームスペース名と残高を表示したかったのですが、ネームスペースの情報取得がまだ対応されていないため、モザイクIDを表示しています）
+
 
 ## モザイク送信
 
+作成したモザイクを送金してみましょう。
+
+HomePage.vue の画面より、作成したモザイクを選択し、数量を入力してください。
+
+前回のNEM送金時と同様に、以下のウォレットへモザイクを送金してみてください。
+
+```
+SAD5BN2GHYNLK2DIABNJHUTJXGYCVBOXOJX7DQFF
+```
+
+以下のような画面になると送金成功です。
+
+<a href="https://imgur.com/nB8Zare"><img src="https://i.imgur.com/nB8Zare.png" width="40%" height="40%" /></a>
+
+
+残高とトランザクション履歴が反映されていることを確認してください。
+
+<a href="https://imgur.com/cNZivgj"><img src="https://i.imgur.com/cNZivgj.png" width="40%" height="40%" /></a>
+
+
+<a href="https://imgur.com/HiMMgNf"><img src="https://i.imgur.com/HiMMgNf.png" width="40%" height="40%" /></a>
+
+
 ## Github Pagesへ公開
+
+では、最後にここまで作成したNEM2ウォレットをWeb上に公開しましょう。
+
+静的ページのホスティングサービスである Github Pages を使えば容易に公開できます。
+
+なお、Github Pagesへ公開するためには予めGithubの登録が必要です。
+
+https://github.com/
+
+### リポジトリの登録
+
+ウォレットのコード一式をリポジトリへ登録します。
+
+まずは Githubのリモートリポジトリを作成します。
+
+GitHubを開き、New repository（ https://github.com/new ）を選択してください。
+
+
+リポジトリ名や説明は適当な名前を入力してください。
+
+<a href="https://imgur.com/GDrkRFB"><img src="https://i.imgur.com/GDrkRFB.png" width="40%" height="40%" /></a>
+
+
+作成すると以下のような画面になります。
+
+<a href="https://imgur.com/0IXf4Bh"><img src="https://i.imgur.com/0IXf4Bh.png" width="40%" height="40%" /></a>
+
+
+次に、ローカルリポジトリを作成してリモートリポジトリへプッシュします。
+
+こちらで用意したGitからcloneして取り入れているため .git ディレクトリを削除します。
+
+作業していたディレクトリへ移動して以下のコマンドを実行してください。
+
+```bash
+rm -rf .git
+```
+
+削除後、以下のコマンドを入力してローカルリポジトリを作成します。
+
+```bash
+git init
+git add *
+git commit -m "first commit"
+git branch -a
+* master
+  remotes/origin/master
+```
+
+ローカルリポジトリができました。
+
+次に、リモートリポジトリへプッシュします。
+
+```bash
+git remote add origin https://github.com/hukusuke1007/nem2-workshop-answer.git
+git push -u origin master
+```
+
+fatal: remote origin already exists. と怒られても問題ありません。そのままgit push -u origin masterをしてください。
+
+プッシュすると、先ほど作ったGithubのリポジトリにソースコードがアップロードされていることが確認できます。
 
 
 ## 著者

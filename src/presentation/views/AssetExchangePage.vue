@@ -22,11 +22,6 @@
               v-model="assetForm.maxAmount"
               type="number"
               required />
-            <v-text-field
-              label="exchange NEM amount"
-              v-model="assetForm.exchangeNemAmount"
-              type="number"
-              required=""/>
           </v-form>
           <v-flex style="padding-bottom: 20px;">
             <v-btn
