@@ -1112,7 +1112,7 @@ https://hukusuke1007.github.io/nem2-wallet-workshop-answer/
 <a href="https://imgur.com/F0x2QoM"><img src="https://i.imgur.com/F0x2QoM.png" width="40%" height="40%" /></a>
 
 
-お疲れ様でした。これで作成したNEM2ウォレットがウェブ上に公開できました。
+お疲れ様でした。これで作成したNEM2ウォレットがWeb上に公開できました。
 
 Githubドメインになったため、localhostで作成していたウォレットとは別のウォレットが作成されます。
 
