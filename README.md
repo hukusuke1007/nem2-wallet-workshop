@@ -941,9 +941,7 @@ async createAsset(asset: AssetCreation) {
     const wallet = await this.walletRepository.loadWallet()
     if (wallet === undefined) { throw new Error('wallet is nothing..') }
     const privateKey = wallet!.privateKey!
-    const address = wallet!.address!
     const namespace = asset.namespace
-    const account = await this.walletRepository.loadAccount(address)
 
     const status = await this.namespaceRepository.loadNamespace(namespace)
     console.log('status', status)
