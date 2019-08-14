@@ -1019,7 +1019,7 @@ SAD5BN2GHYNLK2DIABNJHUTJXGYCVBOXOJX7DQFF
 
 ## Github Pagesへ公開
 
-では、最後にここまで作成したNEM2ウォレットをWeb上に公開しましょう。
+では、最後に作成したNEM2ウォレットをWeb上に公開しましょう。
 
 静的ページのホスティングサービスである Github Pages を使えば容易に公開できます。
 
@@ -1048,7 +1048,7 @@ GitHubを開き、New repository（ https://github.com/new ）を選択してく
 
 次に、ローカルリポジトリを作成してリモートリポジトリへプッシュします。
 
-cloneして取り入れているため、 .git ディレクトリを削除します。
+cloneして取り入れているため .git ディレクトリを削除します。
 
 作業していたディレクトリへ移動して以下のコマンドを実行してください。
 
@@ -1064,17 +1064,6 @@ git add *
 git commit -m "first commit"
 git remote add origin https://github.com/hukusuke1007/nem2-wallet-workshop-answer.git
 git push -u origin master
-
-Enumerating objects: 89, done.
-Counting objects: 100% (89/89), done.
-Delta compression using up to 8 threads
-Compressing objects: 100% (82/82), done.
-Writing objects: 100% (89/89), 585.05 KiB | 15.81 MiB/s, done.
-Total 89 (delta 5), reused 0 (delta 0)
-remote: Resolving deltas: 100% (5/5), done.
-To https://github.com/hukusuke1007/nem2-wallet-workshop-answer.git
- * [new branch]      master -> master
-Branch 'master' set up to track remote branch 'master' from 'origin'.
 ```
 
 プッシュすると、先ほど作ったGithubのリポジトリにソースコードがアップロードされていることが確認できます。
