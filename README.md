@@ -471,9 +471,7 @@ this.transactionHttp
 
 リクエストの結果は listenerWrapper 経由で返ってきます。
 
-NEM2では announce 後はリクエストの受け取りの応答が返ってきます。実行処理の結果はウェブソケット（Listener）経由で受け取らなければなりません。
-
-Listener をラップしたクラス ListenerWrapper で受け取り処理を実装しています。
+NEM2では announce 後はリクエストの受け取りの応答が返ってきます。実行処理の結果はウェブソケット（Listener）経由で受け取らなければなりません。Listener をラップしたクラス ListenerWrapper で受け取り処理を実装しています。
 
 全体の実装は以下の通りです。
 
@@ -687,7 +685,230 @@ HomePage.vue の画面からトランザクション履歴の一覧が表示さ�
 
 ## モザイク、ネームスペース作成（アグリゲートトランザクション）
 
+モザイクとネームスペースを作成する処理を実装します。
+
+またモザイクとネームスペースとの紐付けも行い、アグリゲートトランザクションを使って一括で実行できるようにします。
+
+### モザイク作成のトランザクション作成
+
+src/infrastructure/datasource/MosaicDataSource.ts の createMosaicDefinitionTxAggregate 関数を実装していきます。
+
+MosaicDefinitionTransaction.create を利用してモザイク作成のトランザクションを作成します。
+
+必要なnone, mosaicIdはSDKのAPIを使って取得します。モザイクのプロパティは「供給量、第3者への転送可否、可分性、有効期限」を設定します。
+有効期限はモザイクのレンタル期間の承認済みブロック数を指定します。期間は 3650 日(10年)まで許可されており、期限の切れないモザイクを作るためにはプロパティを未定義にします。
+
+
+```typescript
+const nonce = MosaicNonce.createRandom()
+const mosaicId = MosaicId.createFromNonce(nonce, account.publicAccount)
+const mosaicDefinitionTransaction = MosaicDefinitionTransaction.create(
+    Deadline.create(),
+    nonce,
+    mosaicId,
+    MosaicProperties.create({
+      supplyMutable: asset.supplyMutable,
+      transferable: asset.transferable,
+      divisibility: asset.divisibility,
+      duration: asset.durationCount !== undefined ? UInt64.fromUint(asset.durationCount) : undefined }),
+    this.nemNode.network)
+```
+
+次に、src/infrastructure/datasource/MosaicDataSource.ts の createMosaicSupplyChangeTxAggregate 関数を実装していきます。
+
+これはモザイクの供給量を設定するために必要です。
+
+APIの第2引数では先ほど作成したモザイクIDを指定し、第4引数では供給量を指定します。
+
+```typescript
+const mosaicSupplyChangeTransaction = MosaicSupplyChangeTransaction.create(
+  Deadline.create(),
+  new MosaicId(mosaicId),
+  MosaicSupplyType.Increase,
+  UInt64.fromUint(maxAmount),
+  this.nemNode.network)
+```
+
+モザイクを作成する際は、MosaicDefinitionTransaction と MosaicSupplyChangeTransactionを利用して二つのトランザクションの作成が必要になります。
+
+全体の実装は以下の通りです。
+
+```typescript
+createMosaicDefinitionTxAggregate(privateKey: string, asset: AssetCreation): MosaicAggregate {
+  const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
+  const nonce = MosaicNonce.createRandom()
+  const mosaicId = MosaicId.createFromNonce(nonce, account.publicAccount)
+  const mosaicDefinitionTransaction = MosaicDefinitionTransaction.create(
+      Deadline.create(),
+      nonce,
+      mosaicId,
+      MosaicProperties.create({
+        supplyMutable: asset.supplyMutable,
+        transferable: asset.transferable,
+        divisibility: asset.divisibility,
+        duration: asset.durationCount !== undefined ? UInt64.fromUint(asset.durationCount) : undefined }),
+      this.nemNode.network)
+  const txInfo = { mosaicId: mosaicId.toHex(), transaction: mosaicDefinitionTransaction }
+  return new MosaicAggregate(txInfo.mosaicId, txInfo.transaction.toAggregate(account.publicAccount))
+}
+
+createMosaicSupplyChangeTxAggregate(privateKey: string, mosaicId: string, maxAmount: number): any {
+  const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
+  const mosaicSupplyChangeTransaction = MosaicSupplyChangeTransaction.create(
+    Deadline.create(),
+    new MosaicId(mosaicId),
+    MosaicSupplyType.Increase,
+    UInt64.fromUint(maxAmount),
+    this.nemNode.network)
+  return mosaicSupplyChangeTransaction.toAggregate(account.publicAccount)
+}
+```
+
+### ネームスペース作成のトランザクション作成
+
+src/infrastructure/datasource/NamespaceDataSource.ts の createNamespaceTxAggregate 関数を実装していきます。
+
+RegisterNamespaceTransaction.createRootNamespace を利用します。第2引数に登録したい名前と第3引数にレンタルする期間のブロック数を指定します。
+
+```typescript
+const registerNamespaceTransaction = RegisterNamespaceTransaction.createRootNamespace(
+  Deadline.create(),
+  name,
+  UInt64.fromUint(rentalBlock),
+  this.nemNode.network)
+```
+
+次に モザイクとネームスペースを紐づけるトランザクションを作成します。
+
+src/infrastructure/datasource/NamespaceDataSource.ts の createMosaicToNamespaceTxAggregate 関数を実装していきます。
+
+AliasTransaction.createForMosaic を利用します。第3引数にネームスペースの名前、第4引数にモザイクIDを指定します。
+
+```typescript
+const mosaicAliasTransaction = AliasTransaction.createForMosaic(
+  Deadline.create(),
+  AliasActionType.Link,
+  new NamespaceId(namespace),
+  new MosaicId(mosaicName),
+  this.nemNode.network)
+```
+
+全体の実装は以下の通りです。
+
+```typescript
+createNamespaceTxAggregate(privateKey: string, name: string, rentalBlock: number): any {
+  const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
+  const registerNamespaceTransaction = RegisterNamespaceTransaction.createRootNamespace(
+    Deadline.create(),
+    name,
+    UInt64.fromUint(rentalBlock),
+    this.nemNode.network)
+  return registerNamespaceTransaction.toAggregate(account.publicAccount)
+}
+
+createMosaicToNamespaceTxAggregate(privateKey: string, namespace: string, mosaicName: string): any {
+  const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
+  const mosaicAliasTransaction = AliasTransaction.createForMosaic(
+    Deadline.create(),
+    AliasActionType.Link,
+    new NamespaceId(namespace),
+    new MosaicId(mosaicName),
+    this.nemNode.network)
+  return mosaicAliasTransaction.toAggregate(account.publicAccount)
+}
+```
+
+### アグリゲートトランザクション
+
+複数のトランザクションを一括で処理できるアグリゲートトランザクションを実装します。
+一括で処理できるアグリゲートトランザクションを**アグリゲートコンプリート**と呼びます。要求されているトランザクションを参加者全員が署名するとコンプリートになるトランザクションです。
+
+src/infrastructure/datasource/AggregateTransactionDataSource.ts の requestComplete 関数を実装していきます。
+
+AggregateTransaction.createComplete を利用してアグリゲートコンプリートを行います。
+
+第2引数に複数のトランザクションを指定します。
+
+```typescript
+const aggregateTransaction = AggregateTransaction.createComplete(
+  Deadline.create(),
+  aggregateTransactions,
+  this.nemNode.network,
+  [])
+```
+
+コンプリートのトランザクションができましたら、署名して announce します。結果は Listener 経由で返ってきます。
+
+```typescript
+const signedTransaction = account.sign(aggregateTransaction, this.nemNode.networkGenerationHash)
+this.listenerWrapper.loadStatus(account.address.plain(), signedTransaction.hash)
+  .then((response) => resolve(response))
+  .catch((error) => reject(error))
+this.transactionHttp.announce(signedTransaction)
+    .subscribe(
+      (response) => console.log('request', response),
+      (error) => reject(error))
+```
+
+全体の実装は以下の通りです。
+
+```typescript
+async requestComplete(privateKey: string, aggregateTransactions: any[]): Promise<TransactionResult> {
+  return new Promise((resolve, reject) => {
+    const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
+    const aggregateTransaction = AggregateTransaction.createComplete(
+      Deadline.create(),
+      aggregateTransactions,
+      this.nemNode.network,
+      [])
+    const signedTransaction = account.sign(aggregateTransaction, this.nemNode.networkGenerationHash)
+    this.listenerWrapper.loadStatus(account.address.plain(), signedTransaction.hash)
+      .then((response) => resolve(response))
+      .catch((error) => reject(error))
+    this.transactionHttp.announce(signedTransaction)
+        .subscribe(
+          (response) => console.log('request', response),
+          (error) => reject(error))
+  })
+}
+```
+
+### ユースケースを実装する
+
+モザイク作成、ネームスペース作成、モザイクとネームスペースの紐付けの処理は実装できたので、これらを操作するロジックを実装します。
+
+これらはアプリの「オリジナルアセットを作成する」という機能になるため、そのビジネスロジックはdomain層のUseCaseで実装します。
+
+
+
+
+```typescript
+```
+
+```typescript
+```
+
+```typescript
+```
+
+```typescript
+```
+
+```typescript
+```
+
+```typescript
+```
+
+```typescript
+```
+
+```typescript
+```
+
 ## モザイク送信
+
+## Github Pagesへ公開
 
 
 ## 著者

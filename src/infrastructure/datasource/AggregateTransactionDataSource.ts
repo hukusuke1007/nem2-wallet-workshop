@@ -2,7 +2,7 @@ import { AccountHttp, TransactionHttp, Account,
   TransferTransaction, Deadline, NetworkCurrencyMosaic, PlainMessage,
   PublicAccount, QueryParams, Order, UInt64,
   MosaicId, MosaicHttp,
-  AggregateTransaction, Mosaic, HashLockTransaction, Listener, CosignatureTransaction, CosignatureSignedTransaction, AggregateTransactionCosignature, InnerTransaction, Address } from 'nem2-sdk'
+  AggregateTransaction, Mosaic, HashLockTransaction, CosignatureTransaction, CosignatureSignedTransaction, AggregateTransactionCosignature, InnerTransaction, Address } from 'nem2-sdk'
 import { AggregateTransactionRepository } from '@/domain/repository/AggregateTransactionRepository'
 import { of, zip } from 'rxjs'
 import { mergeMap, map, filter, catchError, combineAll } from 'rxjs/operators'
@@ -13,8 +13,7 @@ import { AggregateEscrowDTO } from '@/domain/entity/AggregateEscrowDTO'
 import { AggregateConsigInfo } from '@/domain/entity/AggregateConsigInfo'
 import { AggregateConsig } from '@/domain/entity/AggregateConsig'
 import { MosaicDTO } from '@/domain/entity/MosaicDTO'
-import { ZoneId, ChronoUnit } from 'js-joda';
-import { NemHelper } from '@/domain/helper/NemHelper';
+import { ZoneId, ChronoUnit } from 'js-joda'
 
 export class AggregateTransactionDataSource implements AggregateTransactionRepository {
   nemNode: NemNode
@@ -34,22 +33,23 @@ export class AggregateTransactionDataSource implements AggregateTransactionRepos
   async requestComplete(privateKey: string, aggregateTransactions: any[]): Promise<TransactionResult> {
     return new Promise((resolve, reject) => {
       // TODO: モザイク、ネームスペース作成（アグリゲートトランザクション）
-      resolve(undefined)
-      // const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
-      // const aggregateTransaction = AggregateTransaction.createComplete(
-      //   Deadline.create(),
-      //   aggregateTransactions,
-      //   this.nemNode.network,
-      //   [])
-      // const signedTransaction = account.sign(aggregateTransaction, this.nemNode.networkGenerationHash)
-      // // status
-      // this.listenerWrapper.loadStatus(account.address.plain(), signedTransaction.hash)
-      //   .then((response) => resolve(response))
-      //   .catch((error) => reject(error))
-      // this.transactionHttp.announce(signedTransaction)
-      //     .subscribe(
-      //       (response) => console.log('request', response),
-      //       (error) => reject(error))
+      // resolve(undefined)
+
+      // commentout
+      const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
+      const aggregateTransaction = AggregateTransaction.createComplete(
+        Deadline.create(),
+        aggregateTransactions,
+        this.nemNode.network,
+        [])
+      const signedTransaction = account.sign(aggregateTransaction, this.nemNode.networkGenerationHash)
+      this.listenerWrapper.loadStatus(account.address.plain(), signedTransaction.hash)
+        .then((response) => resolve(response))
+        .catch((error) => reject(error))
+      this.transactionHttp.announce(signedTransaction)
+          .subscribe(
+            (response) => console.log('request', response),
+            (error) => reject(error))
     })
   }
 
