@@ -56,7 +56,7 @@ yarn --version
 ## 目次
 
 - はじめに
-- ウォレット作成
+- ウォレット
 - 残高取得
 - 送金
 - 送金トランザクション履歴の取得
@@ -251,7 +251,9 @@ EXPLORER_URL = 'http://catapult-test.opening-line.jp:8000'
 
 今後、メインネットが稼働しましたら .env の設定を変更するだけで、容易にメインネットへの切り替えができます。
 
-## ウォレット作成
+## ウォレット
+
+### ウォレットの作成と保存
 
 NEM2-SDKを利用してウォレットを作成します。
 
@@ -306,6 +308,8 @@ async createWallet() {
 
 <a href="https://imgur.com/rVSTw4l"><img src="https://i.imgur.com/rVSTw4l.png" width="70%" height="70%" /></a>
 
+
+### 保存したウォレットを取得
 
 保存したウォレットの取得処理を実装します。
 
