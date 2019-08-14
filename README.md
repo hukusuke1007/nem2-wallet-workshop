@@ -11,7 +11,7 @@ Vue.js + TypeScript + NEM2-SDKを用いてWebウォレットを作成します�
 
 予め用意している gitリポジトリ を clone してウォレット機能を実装していきます。
 
-最後に静的ホスティングサービスの Github Pages を利用して、Web上にNEM2ウォレットアプリを公開します。
+最後に静的ホスティングサービスの Github Pages を利用して、Web上にNEM2ウォレットを公開します。
 
 
 なお、本解説は macOS 環境下を前提に解説しています。
@@ -66,6 +66,8 @@ yarn --version
 
 ## はじめに
 本ウォレットは0から作り始まるのではなく、予め用意しているリポジトリを利用し、不足部のコードを実装して作り上げていきます。
+
+実装済みのリポジトリは https://github.com/hukusuke1007/nem2-wallet-workshop-answer で管理しています。
 
 まずは、利用する gitリポジトリ を clone します。
 
@@ -1142,3 +1144,6 @@ Twitter	https://twitter.com/hobbydevelop<br>
 
 ・Node.js公式サイト<br>
 [https://nodejs.org/ja/](https://nodejs.org/ja/)
+
+・サンプルコード<br>
+[https://github.com/hukusuke1007/nem2-wallet-workshop-answer](https://github.com/hukusuke1007/nem2-wallet-workshop-answer)
