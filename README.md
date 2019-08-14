@@ -1,4 +1,4 @@
-# NEM2 wallet
+# Vue.js + TypeScript + NEM2-SDK でNEM2 walletを作る
 
 ## 概要
 
@@ -308,6 +308,7 @@ async createWallet() {
 
 <a href="https://imgur.com/rVSTw4l"><img src="https://i.imgur.com/rVSTw4l.png" width="70%" height="70%" /></a>
 
+なお、ローカルストレージはドメイン毎に管理されているため、URLのドメインが変わるとウォレットも新しく生成される仕様にしています。
 
 ### 保存したウォレットを取得
 
