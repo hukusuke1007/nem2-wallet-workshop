@@ -1,100 +1,133 @@
-# Vue.js + TypeScript + NEM2-SDK でNEM2 walletを作る
 
-## 概要
+= Vue.js + TypeScript + NEM2-SDK でNEM2 walletを作る
+
+== 概要
+
 
 初めまして、shoheiです。iOS/Android/Webアプリ開発をしているフリーランスエンジニアです。また、ブロックチェーンを用いたプロダクト開発も行っております。
 
 
+
 Vue.js + TypeScript + NEM2-SDKを用いてWebウォレットを作成します。あらかじめ用意している gitリポジトリ を clone してウォレット機能を実装していきます。最後に静的ホスティングサービスの Github Pages を利用して、Web上にNEM2ウォレットを公開します。
+
+
 
 本解説は macOS 環境下を前提に解説しています。
 
-### 目次
 
-- 事前準備
-- はじめに
-- ウォレット
-- 残高取得
-- 送金
-- 送金トランザクション履歴の取得
-- モザイク、ネームスペース作成（アグリゲートトランザクション）
-- モザイク送信
-- Github Pagesへ公開
-
-## 事前準備
-
-はじめる前に、node.js、yarn、Vue cliのインストールをしてください。
+=== 目次
+ * 事前準備
+ * はじめに
+ * ウォレット
+ * 残高取得
+ * 送金
+ * 送金トランザクション履歴の取得
+ * モザイク、ネームスペース作成（アグリゲートトランザクション）
+ * モザイク送信
+ * Github Pagesへ公開
 
 
-### node.jsの導入
-
-次の公式サイトからインストーラーをダウンロードしてnode.jsをインストールしてください。
-
-https://nodejs.org/ja/
+== 事前準備
 
 
-### yarnの導入
-```bash
-npm install -g yarn
-```
+はじめる前にnode.js、yarn、vue-cliのインストールをしてください。
 
-### Vue cliの導入
-```bash
+
+
+・Node.js公式サイト
+
+
+
+@<href>{https://nodejs.org/ja/,https://nodejs.org/ja/}
+
+
+=== Vue cliの導入
+
+//emlist[][bash]{
 npm install -g @vue/cli
-```
+//}
+
+=== yarnの導入
+
+//emlist[][bash]{
+npm install -g yarn
+//}
 
 
 バージョンが表示されればインストール成功です。
 
-```bash
+
+//emlist[][bash]{
 node --version
 v10.15.1vue
 
 npm --version
 6.4.1
 
-yarn --version
-1.16.0
-
 vue --version
 3.4.0
-```
+
+yarn --version
+1.16.0
+//}
+
 
 動作確認は Google Chrome を利用します。
 
-## はじめに
+
+== はじめに
+
+
 本ウォレットは0から作り始まるのではなく、あらかじめ用意しているリポジトリを利用し、不足部のコードを実装して作り上げていきます。実装済みのリポジトリは https://github.com/hukusuke1007/nem2-wallet-workshop-answer で管理しています。
+
+
 
 まずは、利用する gitリポジトリ を clone します。
 
-```bash
+
+//emlist[][bash]{
 git clone https://github.com/hukusuke1007/nem2-wallet-workshop.git
-```
+//}
+
 
 clone すると nem2-wallet-workshop のディレクトリができているので移動します。
 
-```bash
+
+//emlist[][bash]{
 cd nem2-wallet-workshop
-```
-nem2-wallet-workshop が作業用ディレクトリになります。移動後、yarnコマンドを使って依存ライブラリをインストールします。
+//}
 
-```bash
+
+移動後、yarnコマンドを使って依存ライブラリをインストールします。
+
+
+//emlist[][bash]{
 yarn
-```
+//}
 
-ローカルサーバーを立ち上げます。
 
-```bash
+実行します。
+
+
+//emlist[][bash]{
 yarn serve
-```
+//}
+
 
 ブラウザで http://localhost:8080/ へアクセスし、次の画面が表示できれば準備完了です。
 
-![](./images/ZvJRTQb.png)
+
+
+//image[ZvJRTQb][]{
+//}
+
+
+
 
 ディレクトリ構成は次の通りです。
 
-```bash
+
+//emlist[][bash]{
 ├── README.md
 ├── src
 │   ├── App.vue
@@ -159,31 +192,44 @@ yarn serve
 ├── tslint.json
 ├── vue.config.js
 └── yarn.lock
-```
+//}
 
+=== 設計指針
 
-### 設計指針
 
 本ウォレットは クリーンアーキテクチャ を採用しています。presentation層、domain層、infrastructure層に役割を分けて実装しています。
 
+
+
 各層の役割は次の通りです。
 
-
-| 層 | 役割 |
-|:---|:---|
-|presentation | UI/UX部の実装とそれらに依存するロジックを実装します。フォームやボタンの表示や押下イベントをトリガーにdomain層へリクエストします。 |
-|domain | 各機能のロジックを実装します。domain層はインターフェース（repository）を経由してinfrastructure層へリクエストします。|
-|infrastructure | 外部とのやりとりするロジックを実装します。 |
-
-
-各層の関係性を示すために、例として HomePage.vue 上にNEM2-SDKライブラリ経由でウォレットの残高を取得する設計図を示します（クリーンアーキテクチャの詳しい説明については割愛します）。
-
-![](./images/XcgNmje.jpeg)
+//table[tbl1][]{
+層	役割
+-----------------
+presentation	UI/UX部の実装とそれらに依存するロジックを実装します。フォームやボタンの表示や押下イベントをトリガーにdomain層へリクエストします。
+domain	各機能のロジックを実装します。domain層はインターフェース（repository）を経由してinfrastructure層へリクエストします。
+infrastructure	外部とのやりとりするロジックを実装します。
+//}
 
 
-NEM2-SDK や ローカルストレージなどの外部との直接やりとりは、**infrastructure層**で行います。実装部は provide.ts 上で依存注入（DI）しています。
+各層の関係性を示すために、例として HomePage.vue 上にNEM2-SDKライブラリ経由でウォレットの残高を取得する設計図を示します。
 
-```typescript
+
+
+//image[XcgNmje][]{
+//}
+
+
+
+
+（クリーンアーキテクチャの詳しい説明については割愛します）
+
+
+
+NEM2-SDK や ローカルストレージなどの外部との直接やりとりは、@<strong>{infrastructure層}で行います。実装部は provide.ts 上で依存注入（DI）しています。
+
+
+//emlist[][typescript]{
 const host = process.env.NODE_HOST
 const ws = process.env.NODE_WS
 const port = process.env.NODE_PORT
@@ -204,14 +250,15 @@ export const provide = {
   LoadTransactionHistoryUseCase: new LoadTransactionHistoryUseCaseImpl(transactionDataSource, walletDataSource),
   AssetExchangeUseCase: new AssetExchangeUseCaseImpl(transactionDataSource, walletDataSource, aggregateTransactionDataSource, mosaicDataSource, namespaceDataSource),
 }
-```
+//}
 
+=== ブロックチェーンノードの設定
 
-### ブロックチェーンノードの設定
 
 .env で設定しています。
 
-```bash
+
+//emlist[][bash]{
 # Network
 #  MAIN_NET = 104
 #  TEST_NET = 152
@@ -233,44 +280,54 @@ FAUCET_URL = 'https://ol-catapult-faucet.herokuapp.com/'
 
 # Blockchain explorer.
 EXPLORER_URL = 'http://catapult-test.opening-line.jp:8000'
-```
+//}
+
 
 本ウォレットはテストネットを利用しています。今後、メインネットが稼働しましたら .env の設定を変更するだけで、容易にメインネットへの切り替えができます。
 
-## ウォレット
 
-### ウォレットの作成と保存
+== ウォレット
 
-NEM2-SDKを利用してウォレットを作成します。「送金先アドレス、公開鍵、秘密鍵」の生成は全てSDKが行なっているため、アプリ側からはSDKのAPIを呼ぶだけです。src/infrastructure/datasource/WalletDataSource.ts の createWallet 関数を実装していきます。
+=== ウォレットの作成と保存
 
-```typescript
+
+NEM2-SDKを利用してウォレットを作成します。「送金先アドレス、公開鍵、秘密鍵」の生成は全てSDKが行なっているため、アプリ側からはSDKのAPIを呼ぶだけです。
+
+
+
+src/infrastructure/datasource/WalletDataSource.ts の createWallet 関数を実装していきます。
+
+
+//emlist[][typescript]{
 const account = Account.generateNewAccount(this.nemNode.network)
-```
+//}
+
 
 作成されたウォレット情報が account の中にあるので「送金先アドレス、公開鍵、秘密鍵、ネットワークタイプ」を Walletクラス に入れ直します。
 
 
-```typescript
+//emlist[][typescript]{
 const wallet = new Wallet(
   account.address.plain(),
   account.publicKey,
   account.privateKey,
   account.address.networkType.valueOf(),
 )
-```
+//}
 
 
 ブラウザ上のローカルストレージに保存します。保存形式はJSON形式で保存します。
 
-```typescript
+
+//emlist[][typescript]{
 await localForage.setItem(this.localStorageKey, wallet.toJSON())
-```
+//}
 
 
 全体の実装は次の通りです。
 
 
-```typescript
+//emlist[][typescript]{
 async createWallet() {
   const account = Account.generateNewAccount(this.nemNode.network)
   const wallet = new Wallet(
@@ -282,26 +339,45 @@ async createWallet() {
   await localForage.setItem(this.localStorageKey, wallet.toJSON())
   return wallet
 }
-```
+//}
 
-ブラウザの検証ツールより、ローカルストレージを確認して nem2-wallet-workshop のkeyに紐づいて JSON形式でウォレットが保存されていれば成功です。
 
-![](./images/rVSTw4l.png)
+実装後、yarn serveで立ち上げてください。ブラウザの検証ツールより、ローカルストレージを確認して nem2-wallet-workshop のkeyに紐づいて JSON形式でウォレットが保存されていれば成功です。
+
+
+
+//image[rVSTw4l][]{
+//}
+
+
+
 
 なお、ローカルストレージはドメイン毎に管理されているため、URLのドメインが変わるとウォレットも新しく生成される仕様にしています。
 
-### 保存したウォレットを取得
 
-保存したウォレットの取得処理を実装します。src/infrastructure/datasource/WalletDataSource.ts の loadWallet 関数を実装していきます。ローカルストレージから先ほど保存したウォレットに紐づく key を指定して取得します。
+=== 保存したウォレットを取得
 
-```typescript
+
+保存したウォレットの取得処理を実装します。
+
+
+
+src/infrastructure/datasource/WalletDataSource.ts の loadWallet 関数を実装していきます。
+
+
+
+ローカルストレージから先ほど保存したウォレットに紐づく key を指定して取得します。
+
+
+//emlist[][typescript]{
 const item: any = await localForage.getItem(this.localStorageKey)
-```
+//}
 
 
 取得したウォレットはJSONのままですので、Walletクラス に入れ直します。
 
-```typescript
+
+//emlist[][typescript]{
 if (item !== null) {
   return new Wallet(
     'address' in item ? item.address : undefined,
@@ -312,11 +388,13 @@ if (item !== null) {
 } else {
   return undefined
 }
-```
+//}
+
 
 全体の実装は次の通りです。
 
-```typescript
+
+//emlist[][typescript]{
 async loadWallet() {
   const item: any = await localForage.getItem(this.localStorageKey)
   if (item !== null) {
@@ -330,28 +408,41 @@ async loadWallet() {
     return undefined
   }
 }
-```
+//}
+
 
 HomePage.vue の画面上に送金先アドレス（40文字の英数字）が表示されれば成功です。
 
-## 残高取得
+
+== 残高取得
+
 
 ウォレットの残高取得処理を実装します。実装する前に、ウォレット作成で作った送金先アドレスへテストネット用のNEMを送ります。Faucet URLにアクセスして、送金先アドレスと送る数量を設定して CLAIM! を選択してください（HomePage.vueの画面の上部からFaucetへアクセスすることもできます）。
+
+
 
 https://ol-catapult-faucet.herokuapp.com/
 
 
-![](./images/eUBPpUr.png)
+
+//image[eUBPpUr][]{
+//}
+
+
+
 
 残高取得処理を実装します。src/infrastructure/datasource/WalletDataSource.ts の loadBalance 関数を実装していきます。
 
+
+
 残高はブロックチェーンノードをアクセスして取得するため、非同期処理になります。NEM2-SDKではこの非同期処理を RxJS を利用して結果を返すようにしています。本ウォレット内では非同期処理を容易に扱うため infrastructure層では RxJS で結果を受け取った後に Promise を使って domain層 へ結果を返すようにします。
+
 
 
 mosaicsAmountViewFromAddress を用いて送金先アドレスが保持する全ての 残高 を取得します。なお、accountHttpにあるgetAccountInfoからも残高を取得することができますが、NEM以外のモザイクの残高は取得できないため、ここではmosaicsAmountViewFromAddressを利用します。
 
 
-```typescript
+//emlist[][typescript]{
 const address = Address.createFromRawAddress(addr)
 this.mosaicService.mosaicsAmountViewFromAddress(address)
   .pipe(
@@ -360,13 +451,17 @@ this.mosaicService.mosaicsAmountViewFromAddress(address)
   ).subscribe(
     (items) => resolve(items),
     (error) => reject(error))
-```
+//}
+
 
 mosaicsAmountViewFromAddress はモザイクがそれぞれ独立してストリームへ流れてくるため combineAll を利用して次のストリームへまとめて流すようにします。map では AssetMosaicクラス へ入れ直した配列を次のストリームへ流し、resolve で Promiseに結果に入れます。なお、エラーが発生した場合は reject にエラー内容を入れると、利用側の try - catch の例外処理として動いてくれます。
 
+
+
 全体の実装は次の通りです。
 
-```typescript
+
+//emlist[][typescript]{
 async loadBalance(addr: string): Promise<AssetMosaic[]> {
   return new Promise((resolve, reject) => {
     const address = Address.createFromRawAddress(addr)
@@ -379,19 +474,29 @@ async loadBalance(addr: string): Promise<AssetMosaic[]> {
         (error) => reject(error))
   })
 }
-```
+//}
+
 
 実装後、HomePage.vue の画面の　Balance を確認すると 16進数のid と 先ほどFaucetで送った数量が表示されます。この16進数のid が NEM の namespaceId です。
 
-![](./images/e4QLoDq.png)
 
-## 送金
+
+//image[e4QLoDq][]{
+//}
+
+
+
+== 送金
+
 
 送金処理の実装をします。src/infrastructure/datasource/TransactionDataSource.ts の sendAsset 関数を実装していきます。
 
+
+
 送金用トランザクションは TransferTransaction.create を利用します。「トランザクションの有効期限、送金先のアドレス、送金するモザイクの種類と数量、メッセージ、ネットワークタイプ」を指定して作成します。
 
-```typescript
+
+//emlist[][typescript]{
 const recipientAddress = Address.createFromRawAddress(asset.address)
 const transferTransaction = TransferTransaction.create(
     Deadline.create(),
@@ -399,22 +504,26 @@ const transferTransaction = TransferTransaction.create(
     [new Mosaic(new MosaicId(asset.mosaicId), UInt64.fromUint(asset.getRawAmount()))],
     asset.message !== undefined ? PlainMessage.create(asset.message) : PlainMessage.create(''),
     this.nemNode.network)
-```
+//}
+
 
 なお、今回はNEMとNEM以外のモザイクも送れるよう 第3引数に Mosaic を指定しています。NEMだけを扱いたい場合は NetworkCurrencyMosaic.createRelative(asset.relativeAmount) を指定すればできます。
 
 
+
 トランザクションを作った後、自身の秘密鍵で署名を行います。
 
-```typescript
+
+//emlist[][typescript]{
 const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
 const signedTransaction = account.sign(transferTransaction, this.nemNode.networkGenerationHash)
-```
+//}
 
 
 ブロックチェーンノードへリクエストします。
 
-```typescript
+
+//emlist[][typescript]{
 this.listenerWrapper.loadStatus(account.address.plain(), signedTransaction.hash)
   .then((response) => resolve(response))
   .catch((error) => reject(error))
@@ -423,13 +532,17 @@ this.transactionHttp
   .subscribe(
     (response) => console.log(response),
     (error) => reject(error))
-```
+//}
 
-リクエストの結果は listenerWrapper 経由で返ってきます。NEM2では announce 後はリクエスト受け取りの結果が返ってきますが、実行そのものの結果はウェブソケット（Listener）経由で返ってきます。Listener をラップした ListenerWrapperクラス 経由で実行結果を取得します。
+
+リクエストの結果は listenerWrapper 経由で返ってきます。NEM2では announce 後はリクエストの受け取りの応答が返ってきます。実行処理の結果はウェブソケット（Listener）経由で受け取らなければなりません。Listener をラップしたクラス ListenerWrapper で受け取り処理を実装しています。
+
+
 
 全体の実装は次の通りです。
 
-```typescript
+
+//emlist[][typescript]{
 async sendAsset(privateKey: string, asset: SendAsset): Promise<TransactionResult> {
   return new Promise((resolve, reject) => {
     const recipientAddress = Address.createFromRawAddress(asset.address)
@@ -452,58 +565,81 @@ async sendAsset(privateKey: string, asset: SendAsset): Promise<TransactionResult
         (error) => reject(error))
   })
 }
-```
+//}
+
 
 送金処理の動作確認のため、試しに次のウォレットへNEMを送金してみてください。
 
-```
+
+//emlist{
 SAD5BN2GHYNLK2DIABNJHUTJXGYCVBOXOJX7DQFF
-```
+//}
+
 
 送金後、次のような画面になると成功です。ResultにはトランザクションIDが表示されます。Balanceの右側の更新アイコンを押下すると最新の残高が画面上に反映されます。
 
-![](./images/GIDdaOV.png)
 
-## 送金トランザクション履歴の取得
 
-送金履歴の取得処理を実装します。src/infrastructure/datasource/TransactionDataSource.ts の transactionHistoryAll 関数を実装していきます。
+//image[GIDdaOV][]{
+//}
+
+
+
+== 送金トランザクション履歴の取得
+
+
+送金履歴の取得処理を実装します。
+
+
+
+src/infrastructure/datasource/TransactionDataSource.ts の transactionHistoryAll 関数を実装していきます。
+
+
 
 トランザクション履歴の取得は accountHttp の transactions で取得できますが、送金履歴だけを取得するとなると一手間かけなければいけません。また、取得したトランザクションのタイムスタンプやモザイクの可分性を同時に取得しないといけないため、実装がやや複雑になります。それらの処理はすべて RxJS の pipe の中で実装していきます。
 
-```typescript
+
+//emlist[][typescript]{
 let lastTransactionId: string
 let transactions: TransferTransaction[] = []
 const publicAccount = PublicAccount.createFromPublicKey(publicKey, this.nemNode.network)
 this.accountHttp.transactions(publicAccount, new QueryParams(limit, id, Order.DESC))
   .pipe(
     // これ以降の処理を実装していく
-```
+//}
+
 
 まずは、取得したトランザクション履歴が空の場合の処理を行います。空の場合は TransactionHistoryInfo に undefined を指定して返します。
 
-```typescript
+
+//emlist[][typescript]{
 map((items) => {
   if (items.length === 0) {
     resolve(new TransactionHistoryInfo(undefined))
   }
   return items
 }),
-```
+//}
 
 
 取得したトランザクションを TransferTransaction のみにフィルタリングして、TransferTransactionの場合は TransferTransaction にキャスト変換します。さらに、キャスト変換した TransferTransaction の transactionInfo が TransactionInfo のみにフィルタリングして transactions へ入れて、ストリームへ流します。transactions は 後に配列要素の最後のトランザクションIDを取得するために使用します。
 
-```typescript
+
+//emlist[][typescript]{
 mergeMap((items) => transactions = items.filter((item) => item instanceof TransferTransaction)
   .map((item) => item as TransferTransaction)
   .filter((item) => item.transactionInfo !== undefined && item.transactionInfo instanceof TransactionInfo)),
-```
+//}
+
 
 それぞれのトランザクション履歴から タイムスタンプとモザイクの可分性を取得します。zip を用いて並列リクエストを行いストリームへ流します。第1引数は今までストリームから流れてきたトランザクション履歴、第2引数はトランザクションIDのブロック取得API、第3引数はモザイク情報を取得APIです。
 
+
+
 なお、今回はトランザクション履歴には１つのモザイクのみを扱う前提で実装しています。複数のモザイクが入ったトランザクション履歴がある場合は期待通りに動作しませんのであらかじめご了承ください。
 
-```typescript
+
+//emlist[][typescript]{
 mergeMap((item) => {
   return zip(
     of(item),
@@ -515,11 +651,13 @@ mergeMap((item) => {
       ) : of(6), // NEMの場合はnamespaceIdしかとれないのでof(6)を返すようにする
   )
 }),
-```
+//}
+
 
 必要な情報が揃ったので TransactionHistoryクラス に入れ直します。combineAll で全てのトランザクション履歴が流れてくるまで待ちます。
 
-```typescript
+
+//emlist[][typescript]{
 map(([tx, block, divisibility]) =>
   of(new TransactionHistory(
     tx.transactionInfo!.id,
@@ -534,12 +672,13 @@ map(([tx, block, divisibility]) =>
   )),
 ),
 combineAll(),
-```
+//}
 
 
 最後に TransactionHistoryInfoクラス にデータを入れ直します。ページング処理ができるよう最後のトランザクションIDと、先ほど入れ直した TransactionHistory を降順にソートしたものを TransactionHistoryInfo に入れます。
 
-```typescript
+
+//emlist[][typescript]{
 map((items) => {
   lastTransactionId = transactions.slice(-1)[0].transactionInfo!.id
   return new TransactionHistoryInfo(lastTransactionId, items.sort((a, b) => {
@@ -550,12 +689,13 @@ map((items) => {
     return 0
   }))
 }),
-```
+//}
+
 
 全体の実装は次の通りです。
 
 
-```typescript
+//emlist[][typescript]{
 async transactionHistoryAll(publicKey: string, limit: number, id?: string): Promise<TransactionHistoryInfo> {
   return new Promise((resolve, reject) => {
     let lastTransactionId: string
@@ -612,25 +752,35 @@ async transactionHistoryAll(publicKey: string, limit: number, id?: string): Prom
         (error) => reject(error))
   })
 }
-```
+//}
+
 
 HomePage.vue の画面からトランザクション履歴の一覧が表示されると成功です。
 
-![](./images/6RpE6L6.png)
 
 
-## モザイク、ネームスペース作成（アグリゲートトランザクション）
+//image[6RpE6L6][]{
+//}
+
+
+
+== モザイク、ネームスペース作成（アグリゲートトランザクション）
+
 
 モザイクとネームスペースを作成する処理を実装します。モザイクとネームスペースとの紐付けも行い、アグリゲートトランザクションを使って一括で実行できるようにします。
 
-### モザイク作成のトランザクション
+
+=== モザイク作成のトランザクション
+
 
 src/infrastructure/datasource/MosaicDataSource.ts の createMosaicDefinitionTxAggregate 関数を実装していきます。
+
+
 
 MosaicDefinitionTransaction.create を利用してモザイク作成のトランザクションを作成します。必要なnone, mosaicIdはSDKのAPIを使って取得します。モザイクのプロパティは「供給量、第3者への転送可否、可分性、有効期限」を設定します。有効期限はモザイクのレンタル期間の承認済みブロック数を指定します。期間は 3650 日(10年)まで許可されており、期限の切れないモザイクを作るためにはプロパティを未定義にします。
 
 
-```typescript
+//emlist[][typescript]{
 const nonce = MosaicNonce.createRandom()
 const mosaicId = MosaicId.createFromNonce(nonce, account.publicAccount)
 const mosaicDefinitionTransaction = MosaicDefinitionTransaction.create(
@@ -643,24 +793,34 @@ const mosaicDefinitionTransaction = MosaicDefinitionTransaction.create(
       divisibility: asset.divisibility,
       duration: asset.durationCount !== undefined ? UInt64.fromUint(asset.durationCount) : undefined }),
     this.nemNode.network)
-```
+//}
 
-次に、src/infrastructure/datasource/MosaicDataSource.ts のcreateMosaicSupplyChangeTxAggregate 関数を実装していきます。これはモザイクの供給量を設定するために必要です。APIの第2引数では先ほど作成したモザイクIDを指定し、第4引数では供給量を指定します。
 
-```typescript
+次に、src/infrastructure/datasource/MosaicDataSource.ts の createMosaicSupplyChangeTxAggregate 関数を実装していきます。
+
+
+
+これはモザイクの供給量を設定するために必要です。APIの第2引数では先ほど作成したモザイクIDを指定し、第4引数では供給量を指定します。
+
+
+//emlist[][typescript]{
 const mosaicSupplyChangeTransaction = MosaicSupplyChangeTransaction.create(
   Deadline.create(),
   new MosaicId(mosaicId),
   MosaicSupplyType.Increase,
   UInt64.fromUint(maxAmount),
   this.nemNode.network)
-```
+//}
+
 
 モザイクを作成する際は、MosaicDefinitionTransaction と MosaicSupplyChangeTransactionを利用して二つのトランザクションの作成が必要になります。
 
+
+
 全体の実装は次の通りです。
 
-```typescript
+
+//emlist[][typescript]{
 createMosaicDefinitionTxAggregate(privateKey: string, asset: AssetCreation): MosaicAggregate {
   const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
   const nonce = MosaicNonce.createRandom()
@@ -689,34 +849,48 @@ createMosaicSupplyChangeTxAggregate(privateKey: string, mosaicId: string, maxAmo
     this.nemNode.network)
   return mosaicSupplyChangeTransaction.toAggregate(account.publicAccount)
 }
-```
+//}
 
-### ネームスペース作成のトランザクション
+=== ネームスペース作成のトランザクション
 
-src/infrastructure/datasource/NamespaceDataSource.ts の createNamespaceTxAggregate 関数を実装していきます。RegisterNamespaceTransaction.createRootNamespace を利用します。第2引数に登録したい名前と第3引数にレンタルする期間のブロック数を指定します。
 
-```typescript
+src/infrastructure/datasource/NamespaceDataSource.ts の createNamespaceTxAggregate 関数を実装していきます。
+
+
+
+RegisterNamespaceTransaction.createRootNamespace を利用します。第2引数に登録したい名前と第3引数にレンタルする期間のブロック数を指定します。
+
+
+//emlist[][typescript]{
 const registerNamespaceTransaction = RegisterNamespaceTransaction.createRootNamespace(
   Deadline.create(),
   name,
   UInt64.fromUint(rentalBlock),
   this.nemNode.network)
-```
+//}
 
-次に モザイクとネームスペースを紐づけるトランザクションを作成します。src/infrastructure/datasource/NamespaceDataSource.ts の createMosaicToNamespaceTxAggregate 関数を実装していきます。AliasTransaction.createForMosaic を利用します。第3引数にネームスペースの名前、第4引数にモザイクIDを指定します。
 
-```typescript
+次に モザイクとネームスペースを紐づけるトランザクションを作成します。src/infrastructure/datasource/NamespaceDataSource.ts の createMosaicToNamespaceTxAggregate 関数を実装していきます。
+
+
+
+AliasTransaction.createForMosaic を利用します。第3引数にネームスペースの名前、第4引数にモザイクIDを指定します。
+
+
+//emlist[][typescript]{
 const mosaicAliasTransaction = AliasTransaction.createForMosaic(
   Deadline.create(),
   AliasActionType.Link,
   new NamespaceId(namespace),
   new MosaicId(mosaicName),
   this.nemNode.network)
-```
+//}
+
 
 全体の実装は次の通りです。
 
-```typescript
+
+//emlist[][typescript]{
 createNamespaceTxAggregate(privateKey: string, name: string, rentalBlock: number): any {
   const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
   const registerNamespaceTransaction = RegisterNamespaceTransaction.createRootNamespace(
@@ -737,28 +911,40 @@ createMosaicToNamespaceTxAggregate(privateKey: string, namespace: string, mosaic
     this.nemNode.network)
   return mosaicAliasTransaction.toAggregate(account.publicAccount)
 }
-```
+//}
 
-### アグリゲートトランザクション
+=== アグリゲートトランザクション
+
 
 複数のトランザクションを一括で処理できるアグリゲートトランザクションを実装します。
-一括で処理できるアグリゲートトランザクションを**アグリゲートコンプリート**と呼びます。要求されているトランザクションを参加者全員が署名するとコンプリートになるトランザクションです。
+一括で処理できるアグリゲートトランザクションを@<strong>{アグリゲートコンプリート}と呼びます。要求されているトランザクションを参加者全員が署名するとコンプリートになるトランザクションです。
+
+
 
 src/infrastructure/datasource/AggregateTransactionDataSource.ts の requestComplete 関数を実装していきます。
 
-AggregateTransaction.createComplete を利用してアグリゲートコンプリートを行います。第2引数に複数のトランザクションを指定します。
 
-```typescript
+
+AggregateTransaction.createComplete を利用してアグリゲートコンプリートを行います。
+
+
+
+第2引数に複数のトランザクションを指定します。
+
+
+//emlist[][typescript]{
 const aggregateTransaction = AggregateTransaction.createComplete(
   Deadline.create(),
   aggregateTransactions,
   this.nemNode.network,
   [])
-```
+//}
+
 
 コンプリートのトランザクションができましたら、署名して announce します。結果は Listener 経由で返ってきます。
 
-```typescript
+
+//emlist[][typescript]{
 const signedTransaction = account.sign(aggregateTransaction, this.nemNode.networkGenerationHash)
 this.listenerWrapper.loadStatus(account.address.plain(), signedTransaction.hash)
   .then((response) => resolve(response))
@@ -767,11 +953,13 @@ this.transactionHttp.announce(signedTransaction)
     .subscribe(
       (response) => console.log('request', response),
       (error) => reject(error))
-```
+//}
+
 
 全体の実装は次の通りです。
 
-```typescript
+
+//emlist[][typescript]{
 async requestComplete(privateKey: string, aggregateTransactions: any[]): Promise<TransactionResult> {
   return new Promise((resolve, reject) => {
     const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
@@ -790,37 +978,46 @@ async requestComplete(privateKey: string, aggregateTransactions: any[]): Promise
           (error) => reject(error))
   })
 }
-```
+//}
 
-### ユースケースを実装する
+=== ユースケースを実装する
+
 
 モザイク作成、ネームスペース作成、モザイクとネームスペースの紐付けの処理は実装できたので、これらを操作するロジックを実装します。「オリジナルアセットを作成する」という機能になるため、そのビジネスロジックはdomain層のUseCaseで実装します。
 
+
+
 src/infrastructure/datasource/AssetExchangeUseCase.ts の createAsset 関数を実装していきます。
+
+
 
 まずは、ネームスペース名、ウォレットを用意します。
 
-```typescript
+
+//emlist[][typescript]{
 const wallet = await this.walletRepository.loadWallet()
 if (wallet === undefined) { throw new Error('wallet is nothing..') }
 const privateKey = wallet!.privateKey!
 const namespace = asset.namespace
-```
+//}
+
 
 作成するモザイクのネームスペースが重複していないか確認します。
 
-```typescript
+
+//emlist[][typescript]{
 const status = await this.namespaceRepository.loadNamespace(namespace)
 console.log('status', status)
 if (status !== undefined) {
   return 'Already exist namespace.'
 }
-```
+//}
+
 
 トランザクションを作成します。先ほど実装した「ネームスペース作成、モザイク作成、モザイク供給量変更、モザイクとネームスペースの紐付け」を利用します。
 
 
-```typescript
+//emlist[][typescript]{
 const namespaceTxAggregate = await this.namespaceRepository.createNamespaceTxAggregate(privateKey, namespace, 100)
 
 const mosaicAggregate = await this.mosaicRepository.createMosaicDefinitionTxAggregate(privateKey, asset)
@@ -829,22 +1026,26 @@ const mosaicId: string = mosaicAggregate.mosaicId
 const mosaicSupplyChangeTxAggregate = await this.mosaicRepository.createMosaicSupplyChangeTxAggregate(privateKey, mosaicId, asset.maxAmount)
 
 const mosaicToNamespaceTxAggregate = await this.namespaceRepository.createMosaicToNamespaceTxAggregate(privateKey, namespace, mosaicId)
-```
+//}
 
-そして、これらのトランザクションをアグリゲートコンプリートとしてリクエストします。
 
-```typescript
+そしてこれらのトランザクションをアグリゲートコンプリートとしてリクエストします。
+
+
+//emlist[][typescript]{
 const result = await this.aggregateRepository.requestComplete(privateKey, [
   namespaceTxAggregate,
   mosaicAggregate.aggregate,
   mosaicSupplyChangeTxAggregate,
   mosaicToNamespaceTxAggregate,
 ])
-```
+//}
+
 
 全体の実装は次の通りです。
 
-```typescript
+
+//emlist[][typescript]{
 async createAsset(asset: AssetCreation) {
   let message: string = ''
   try {
@@ -880,155 +1081,285 @@ async createAsset(asset: AssetCreation) {
   }
   return message
 }
-```
+//}
 
-では、モザイクを作成してみましょう。AssetExchangePage.vue の画面上のフォームに作成するモザイクの情報を入力してください（TOP画面 Menuの Exchange Asset のリンクから遷移できます）。今回はお手軽に作成できるようネームスペース名と供給量のみ入力できるようにしています。好きなネームスペース名を入力し、供給量を入力後 Create ボタンを選択してください。
 
-![](./images/IGm6WcJ.png)
+AssetExchangePage.vue の画面上のフォームに作成するモザイクの情報を入力してください（TOP画面 Menuの Exchange Asset のリンクから遷移できます）。今回はお手軽に作成できるようネームスペース名と供給量のみ入力できるようにしています。好きなネームスペース名を入力し、供給量を入力後 Create ボタンを選択してください。
+
+
+
+//image[IGm6WcJ][]{
+//}
+
+
+
 
 少し時間がかかりますが、次のようにToastが表示されれば成功です。
 
-![](./images/LKgHJcI.png)
-
-TOP画面に戻り、残高に反映されているか確認できます（本当はネームスペース名と残高を表示したかったのですが、ネームスペースの情報取得がまだ対応されていないため、モザイクIDを表示しています）。
-
-![](./images/wSqOj9f.png)
 
 
-## モザイク送信
+//image[LKgHJcI][]{
+//}
+
+
+
+
+TOP画面に戻り、残高に反映されているか確認できます。
+
+
+
+//image[wSqOj9f][]{
+//}
+
+
+
+
+（本当はネームスペース名と残高を表示したかったのですが、ネームスペースの情報取得がまだ対応されていないため、モザイクIDを表示しています）
+
+
+== モザイク送信
+
 
 作成したモザイクを送金してみましょう。HomePage.vue の画面より、作成したモザイクを選択し、数量を入力してください。前回のNEM送金時と同様に、次のウォレットへモザイクを送金してみてください。
 
-```
+
+//emlist{
 SAD5BN2GHYNLK2DIABNJHUTJXGYCVBOXOJX7DQFF
-```
+//}
+
 
 次のような画面になると送金成功です。
 
-![](./images/nB8Zare.png)
+
+
+//image[nB8Zare][]{
+//}
+
+
 
 
 残高とトランザクション履歴が反映されていることを確認してください。
 
-![](./images/cNZivgj.png)
 
 
-![](./images/HiMMgNf.png)
+//image[cNZivgj][]{
+//}
 
-## Github Pagesへ公開
+
+
+
+//image[HiMMgNf][]{
+//}
+
+
+
+== Github Pagesへ公開
+
 
 では、最後に作成したNEM2ウォレットをWeb上に公開しましょう。静的ページのホスティングサービスである Github Pages を使えば容易に公開できます。なお、Github Pagesへ公開するためにはあらかじめGithubの登録が必要です。
 
+
+
 https://github.com/
 
-### リポジトリの登録
+
+=== リポジトリの登録
+
 
 ウォレットのコード一式をリポジトリへ登録します。
 
+
+
 まずは Githubのリモートリポジトリを作成します。GitHubを開き、New repository（ https://github.com/new ）を選択してください。
+
+
 
 リポジトリ名を nem2-wallet-workshop-answer にして作成してください。
 
-![](./images/JvgIPnv.png)
+
+
+//image[JvgIPnv][]{
+//}
+
+
+
 
 作成すると次のような画面になります。
 
-![](./images/skvRABl.png)
+
+
+//image[skvRABl][]{
+//}
+
+
 
 
 次に、ローカルリポジトリを作成してリモートリポジトリへプッシュします。
 
+
+
 cloneして取り入れているためgitディレクトリを削除します。作業していたディレクトリへ移動して次のコマンドを実行してください。
 
-```bash
+
+//emlist[][bash]{
 rm -rf .git
-```
+//}
+
 
 削除後、次のコマンドを入力してローカルリポジトリを作成してリモートリポジトリへプッシュします。
 
-```bash
+
+//emlist[][bash]{
 git init
 git add *
 git commit -m "first commit"
 git remote add origin https://github.com/hukusuke1007/nem2-wallet-workshop-answer.git
 git push -u origin master
-```
+//}
+
 
 プッシュすると、先ほど作ったGithubのリポジトリにソースコードがアップロードされていることが確認できます。
 
-### 静的ページを公開する
+
+=== 静的ページを公開する
+
 
 リポジトリの準備はできたので、静的ページを公開します。今まで実装したコードを公開できる静的ページに変換します。作業していたディレクトリへ移動し、次のコマンドを実行してください。
 
-```bash
+
+//emlist[][bash]{
 yarn build
-```
+//}
+
 
 docsディレクトリが作成されていることを確認してください。
 
-```bash
+
+//emlist[][bash]{
 ls
-LICENSE			docs			postcss.config.js	tsconfig.json		yarn.lock
-README.md		node_modules		public			tslint.json
-desgin.key		package.json		src			vue.config.js
-```
+LICENSE         docs            postcss.config.js   tsconfig.json       yarn.lock
+README.md       node_modules        public          tslint.json
+desgin.key      package.json        src         vue.config.js
+//}
+
 
 Githubへプッシュします。
 
-```bash
+
+//emlist[][bash]{
 git add *
 git commit -m "create docs"
 git push origin HEAD
-```
+//}
 
 
 次に、Githubを開き、リポジトリのSettingよりGithub Pagesを有効にします。
 
+
+
 指定するディレクトリを docs にします。
 
-![](./images/ssFkTAj.png)
+
+
+//image[ssFkTAj][]{
+//}
+
+
+
 
 生成されたURLをアクセスするとウォレットが表示されます。
 
+
+
 https://hukusuke1007.github.io/nem2-wallet-workshop-answer/
 
-![](./images/F0x2QoM.png)
+
+
+//image[F0x2QoM][]{
+//}
+
+
+
 
 お疲れ様でした。これで作成したNEM2ウォレットがWeb上に公開できました。Githubドメインになったため、localhostで作成していたウォレットとは別のウォレットが作成されます。
+
+
 
 http://localhost:8080/ 環境も立ち上げて、localhostのウォレットからGithubドメインのウォレットへ送金して遊んでみてください。
 
 
-## 著者
-**shohei（中川祥平）**
+== 著者
+
+
+@<strong>{shohei（中川祥平）}
+
+
 
 2013年からエンジニアとして京セラ株式会社のグループ会社へ入社し、組み込みソフトウェア開発、ディレクションに従事。在籍中、趣味でiOS/Androidアプリの開発を行い、個人アプリを数本リリース。その後、Web系ベンチャーへ転職。
 
+
+
 2017年末にブロックチェーン技術に出会い、世の中を変えれる技術だと確信し、ブロックチェーントークンを使った健康促進アプリ「FiFiC」の開発、 現在はフリーランスエンジニアとして活動し、主にiOS/Android、Web、ブロックチェーンを使ったアプリの開発を行っている。
+
+
 
 同時に「未経験から自走できるエンジニアとして成長できるコミュニティ」をコンセプトに開発コミュニティ「もくdev」 を発足。関東・関西合わせて500人以上の規模のコミュニティを運営。
 
+
+
 ・Twitter
+
+
 
 https://twitter.com/hobbydevelop
 
+
+
 ・もくdev 大阪
+
+
 
 https://mokudev.connpass.com/
 
+
+
 ・もくdev 東京
+
+
 
 https://mokudev-tokyo.connpass.com/
 
-## 備考
+
+== 備考
+
+
 ・NEM2-SDK
+
+
 
 https://nemtech.github.io/ja/index.html
 
-・NEM2 walletサンプルコード
 
-https://github.com/hukusuke1007/nem2-wallet-workshop-answer
 
 ・Vue.js公式サイト
 
+
+
 https://jp.vuejs.org/index.html
+
+
+
+・Node.js公式サイト
+
+
+
+https://nodejs.org/ja/
+
+
+
+・サンプルコード
+
+
+
+https://github.com/hukusuke1007/nem2-wallet-workshop-answer
+
