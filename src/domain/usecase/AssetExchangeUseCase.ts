@@ -35,37 +35,7 @@ export class AssetExchangeUseCaseImpl implements AssetExchangeUseCase {
   async createAsset(asset: AssetCreation) {
     let message: string = ''
     try {
-      console.log('asset', asset)
       // TODO: モザイク、ネームスペース作成（アグリゲートトランザクション）
-
-      // commentout
-      const wallet = await this.walletRepository.loadWallet()
-      if (wallet === undefined) { throw new Error('wallet is nothing..') }
-      const privateKey = wallet!.privateKey!
-      const namespace = asset.namespace
-
-      const status = await this.namespaceRepository.loadNamespace(namespace)
-      console.log('status', status)
-      if (status !== undefined) {
-        return 'Already exist namespace.'
-      }
-
-      const namespaceTxAggregate = await this.namespaceRepository.createNamespaceTxAggregate(privateKey, namespace, 100)
-
-      const mosaicAggregate = await this.mosaicRepository.createMosaicDefinitionTxAggregate(privateKey, asset)
-      const mosaicId: string = mosaicAggregate.mosaicId
-
-      const mosaicSupplyChangeTxAggregate = await this.mosaicRepository.createMosaicSupplyChangeTxAggregate(privateKey, mosaicId, asset.maxAmount)
-
-      const mosaicToNamespaceTxAggregate = await this.namespaceRepository.createMosaicToNamespaceTxAggregate(privateKey, namespace, mosaicId)
-
-      const result = await this.aggregateRepository.requestComplete(privateKey, [
-        namespaceTxAggregate,
-        mosaicAggregate.aggregate,
-        mosaicSupplyChangeTxAggregate,
-        mosaicToNamespaceTxAggregate,
-      ])
-      message = `SUCCESS: ${result.hash}`
     } catch (error) {
       throw error
     }

@@ -32,27 +32,7 @@ export class TransactionDataSource implements TransactionRepository {
   async sendAsset(privateKey: string, asset: SendAsset): Promise<TransactionResult> {
     return new Promise((resolve, reject) => {
       // TODO: 送金
-      // resolve(undefined)
-
-      // commentout
-      const recipientAddress = Address.createFromRawAddress(asset.address)
-      const transferTransaction = TransferTransaction.create(
-          Deadline.create(),
-          recipientAddress,
-          [new Mosaic(new MosaicId(asset.mosaicId), UInt64.fromUint(asset.getRawAmount()))],
-          asset.message !== undefined ? PlainMessage.create(asset.message) : PlainMessage.create(''),
-          this.nemNode.network)
-      const account = Account.createFromPrivateKey(privateKey, this.nemNode.network)
-      const signedTransaction = account.sign(transferTransaction, this.nemNode.networkGenerationHash)
-      // status
-      this.listenerWrapper.loadStatus(account.address.plain(), signedTransaction.hash)
-        .then((response) => resolve(response))
-        .catch((error) => reject(error))
-      this.transactionHttp
-        .announce(signedTransaction)
-        .subscribe(
-          (response) => console.log(response),
-          (error) => reject(error))
+      resolve(undefined)
     })
   }
 
@@ -91,60 +71,7 @@ export class TransactionDataSource implements TransactionRepository {
   async transactionHistoryAll(publicKey: string, limit: number, id?: string): Promise<TransactionHistoryInfo> {
     return new Promise((resolve, reject) => {
       // TODO: トランザクション履歴取得
-      // resolve(undefined)
-
-      let lastTransactionId: string
-      let transactions: TransferTransaction[] = []
-      const publicAccount = PublicAccount.createFromPublicKey(publicKey, this.nemNode.network)
-      this.accountHttp.transactions(publicAccount, new QueryParams(limit, id, Order.DESC))
-        .pipe(
-          map((items) => {
-            if (items.length === 0) {
-              resolve(new TransactionHistoryInfo(undefined))
-            }
-            return items
-          }),
-          mergeMap((items) => transactions = items.filter((item) => item instanceof TransferTransaction)
-            .map((item) => item as TransferTransaction)
-            .filter((item) => item.transactionInfo !== undefined && item.transactionInfo instanceof TransactionInfo)),
-          mergeMap((item) => {
-            return zip(
-              of(item),
-              this.blockHttp.getBlockByHeight(item!.transactionInfo!.height.compact()),
-              item!.mosaics[0].id instanceof MosaicId ?
-                this.mosaicHttp.getMosaic(new MosaicId(item!.mosaics[0].id.toHex())).pipe(
-                  map((mosaic) => mosaic.divisibility),
-                  catchError((error) => of(0)), // Errorの場合は暫定対策として0を返すようにする
-                ) : of(6), // NEMの場合はnamespaceIdしかとれないのでof(6)を返すようにする
-            )
-          }),
-          map(([tx, block, divisibility]) =>
-            of(new TransactionHistory(
-              tx.transactionInfo!.id,
-              tx.mosaics.length !== 0 ? tx.mosaics[0].amount.compact() / Math.pow(10, divisibility) : 0,
-              tx.maxFee.compact(),
-              tx.recipient instanceof Address ? tx.recipient.plain() : '',
-              tx.signer !== undefined ? tx.signer!.address.plain() : '',
-              tx.message.payload,
-              tx !== undefined ? new Date(block.timestamp.compact() + Date.UTC(2016, 3, 1, 0, 0, 0, 0)) : undefined,
-              tx.transactionInfo!.hash,
-              tx,
-            )),
-          ),
-          combineAll(),
-          map((items) => {
-            lastTransactionId = transactions.slice(-1)[0].transactionInfo!.id
-            return new TransactionHistoryInfo(lastTransactionId, items.sort((a, b) => {
-              const aTime = a.date!.getTime()
-              const bTime = b.date!.getTime()
-              if (aTime > bTime) { return -1 }
-              if (aTime < bTime) { return 1 }
-              return 0
-            }))
-          }),
-        ).subscribe(
-          (response) => resolve(response),
-          (error) => reject(error))
+      resolve(undefined)
     })
   }
 
