@@ -30,27 +30,29 @@ Vue.js + TypeScript + NEM2-SDKを用いてWebウォレットを作成します�
 == 事前準備
 
 
-はじめる前にnode.js、yarn、vue-cliのインストールをしてください。
+はじめる前に、node.js、yarn、Vue cliのインストールをしてください。
+
+
+=== node.jsの導入
+
+
+次の公式サイトからインストーラーをダウンロードしてnode.jsをインストールしてください。
 
 
 
-・Node.js公式サイト
+https://nodejs.org/ja/
 
-
-
-@<href>{https://nodejs.org/ja/,https://nodejs.org/ja/}
-
-
-=== Vue cliの導入
-
-//emlist[][bash]{
-npm install -g @vue/cli
-//}
 
 === yarnの導入
 
 //emlist[][bash]{
 npm install -g yarn
+//}
+
+=== Vue cliの導入
+
+//emlist[][bash]{
+npm install -g @vue/cli
 //}
 
 
@@ -64,11 +66,11 @@ v10.15.1vue
 npm --version
 6.4.1
 
-vue --version
-3.4.0
-
 yarn --version
 1.16.0
+
+vue --version
+3.4.0
 //}
 
 
@@ -98,7 +100,7 @@ cd nem2-wallet-workshop
 //}
 
 
-移動後、yarnコマンドを使って依存ライブラリをインストールします。
+nem2-wallet-workshop が作業用ディレクトリになります。移動後、yarnコマンドを使って依存ライブラリをインストールします。
 
 
 //emlist[][bash]{
@@ -106,7 +108,7 @@ yarn
 //}
 
 
-実行します。
+ローカルサーバーを立ち上げます。
 
 
 //emlist[][bash]{
@@ -212,17 +214,13 @@ infrastructure	外部とのやりとりするロジックを実装します。
 //}
 
 
-各層の関係性を示すために、例として HomePage.vue 上にNEM2-SDKライブラリ経由でウォレットの残高を取得する設計図を示します。
+各層の関係性を示すために、例として HomePage.vue 上にNEM2-SDKライブラリ経由でウォレットの残高を取得する設計図を示します（クリーンアーキテクチャの詳しい説明については割愛します）。
 
 
 
 //image[XcgNmje][]{
 //}
 
-
-
-
-（クリーンアーキテクチャの詳しい説明については割愛します）
 
 
 
@@ -291,11 +289,7 @@ EXPLORER_URL = 'http://catapult-test.opening-line.jp:8000'
 === ウォレットの作成と保存
 
 
-NEM2-SDKを利用してウォレットを作成します。「送金先アドレス、公開鍵、秘密鍵」の生成は全てSDKが行なっているため、アプリ側からはSDKのAPIを呼ぶだけです。
-
-
-
-src/infrastructure/datasource/WalletDataSource.ts の createWallet 関数を実装していきます。
+NEM2-SDKを利用してウォレットを作成します。「送金先アドレス、公開鍵、秘密鍵」の生成は全てSDKが行なっているため、アプリ側からはSDKのAPIを呼ぶだけです。src/infrastructure/datasource/WalletDataSource.ts の createWallet 関数を実装していきます。
 
 
 //emlist[][typescript]{
@@ -342,7 +336,7 @@ async createWallet() {
 //}
 
 
-実装後、yarn serveで立ち上げてください。ブラウザの検証ツールより、ローカルストレージを確認して nem2-wallet-workshop のkeyに紐づいて JSON形式でウォレットが保存されていれば成功です。
+ブラウザの検証ツールより、ローカルストレージを確認して nem2-wallet-workshop のkeyに紐づいて JSON形式でウォレットが保存されていれば成功です。
 
 
 
@@ -358,15 +352,7 @@ async createWallet() {
 === 保存したウォレットを取得
 
 
-保存したウォレットの取得処理を実装します。
-
-
-
-src/infrastructure/datasource/WalletDataSource.ts の loadWallet 関数を実装していきます。
-
-
-
-ローカルストレージから先ほど保存したウォレットに紐づく key を指定して取得します。
+保存したウォレットの取得処理を実装します。src/infrastructure/datasource/WalletDataSource.ts の loadWallet 関数を実装していきます。ローカルストレージから先ほど保存したウォレットに紐づく key を指定して取得します。
 
 
 //emlist[][typescript]{
@@ -535,7 +521,7 @@ this.transactionHttp
 //}
 
 
-リクエストの結果は listenerWrapper 経由で返ってきます。NEM2では announce 後はリクエストの受け取りの応答が返ってきます。実行処理の結果はウェブソケット（Listener）経由で受け取らなければなりません。Listener をラップしたクラス ListenerWrapper で受け取り処理を実装しています。
+リクエストの結果は listenerWrapper 経由で返ってきます。NEM2では announce 後はリクエスト受け取りの結果が返ってきますが、実行そのものの結果はウェブソケット（Listener）経由で返ってきます。Listener をラップした ListenerWrapperクラス 経由で実行結果を取得します。
 
 
 
@@ -588,11 +574,7 @@ SAD5BN2GHYNLK2DIABNJHUTJXGYCVBOXOJX7DQFF
 == 送金トランザクション履歴の取得
 
 
-送金履歴の取得処理を実装します。
-
-
-
-src/infrastructure/datasource/TransactionDataSource.ts の transactionHistoryAll 関数を実装していきます。
+送金履歴の取得処理を実装します。src/infrastructure/datasource/TransactionDataSource.ts の transactionHistoryAll 関数を実装していきます。
 
 
 
@@ -622,7 +604,7 @@ map((items) => {
 //}
 
 
-取得したトランザクションを TransferTransaction のみにフィルタリングして、TransferTransactionの場合は TransferTransaction にキャスト変換します。さらに、キャスト変換した TransferTransaction の transactionInfo が TransactionInfo のみにフィルタリングして transactions へ入れて、ストリームへ流します。transactions は 後に配列要素の最後のトランザクションIDを取得するために使用します。
+取得したトランザクションを TransferTransaction のみにフィルタリングして、TransferTransactionの場合は TransferTransaction にキャスト変換します。さらに、キャスト変換した TransferTransaction の transactionInfo が TransactionInfo のみにフィルタリングして transactions へ入れてからストリームへ流します。transactions は 後に配列要素の最後のトランザクションIDを取得するために使用します。
 
 
 //emlist[][typescript]{
@@ -632,7 +614,7 @@ mergeMap((items) => transactions = items.filter((item) => item instanceof Transf
 //}
 
 
-それぞれのトランザクション履歴から タイムスタンプとモザイクの可分性を取得します。zip を用いて並列リクエストを行いストリームへ流します。第1引数は今までストリームから流れてきたトランザクション履歴、第2引数はトランザクションIDのブロック取得API、第3引数はモザイク情報を取得APIです。
+それぞれのトランザクション履歴から タイムスタンプとモザイクの可分性を取得します。zip を用いて並列処理でストリームへ流します。第1引数は今までストリームから流れてきたトランザクション履歴、第2引数はトランザクションIDのブロック取得API、第3引数はモザイク情報を取得APIです。
 
 
 
@@ -796,11 +778,7 @@ const mosaicDefinitionTransaction = MosaicDefinitionTransaction.create(
 //}
 
 
-次に、src/infrastructure/datasource/MosaicDataSource.ts の createMosaicSupplyChangeTxAggregate 関数を実装していきます。
-
-
-
-これはモザイクの供給量を設定するために必要です。APIの第2引数では先ほど作成したモザイクIDを指定し、第4引数では供給量を指定します。
+次に、src/infrastructure/datasource/MosaicDataSource.ts のcreateMosaicSupplyChangeTxAggregate 関数を実装していきます。これはモザイクの供給量を設定するために必要です。APIの第2引数では先ほど作成したモザイクIDを指定し、第4引数では供給量を指定します。
 
 
 //emlist[][typescript]{
@@ -854,11 +832,7 @@ createMosaicSupplyChangeTxAggregate(privateKey: string, mosaicId: string, maxAmo
 === ネームスペース作成のトランザクション
 
 
-src/infrastructure/datasource/NamespaceDataSource.ts の createNamespaceTxAggregate 関数を実装していきます。
-
-
-
-RegisterNamespaceTransaction.createRootNamespace を利用します。第2引数に登録したい名前と第3引数にレンタルする期間のブロック数を指定します。
+src/infrastructure/datasource/NamespaceDataSource.ts の createNamespaceTxAggregate 関数を実装していきます。RegisterNamespaceTransaction.createRootNamespace を利用します。第2引数に登録したい名前と第3引数にレンタルする期間のブロック数を指定します。
 
 
 //emlist[][typescript]{
@@ -870,11 +844,7 @@ const registerNamespaceTransaction = RegisterNamespaceTransaction.createRootName
 //}
 
 
-次に モザイクとネームスペースを紐づけるトランザクションを作成します。src/infrastructure/datasource/NamespaceDataSource.ts の createMosaicToNamespaceTxAggregate 関数を実装していきます。
-
-
-
-AliasTransaction.createForMosaic を利用します。第3引数にネームスペースの名前、第4引数にモザイクIDを指定します。
+次に モザイクとネームスペースを紐づけるトランザクションを作成します。src/infrastructure/datasource/NamespaceDataSource.ts の createMosaicToNamespaceTxAggregate 関数を実装していきます。AliasTransaction.createForMosaic を利用します。第3引数にネームスペースの名前、第4引数にモザイクIDを指定します。
 
 
 //emlist[][typescript]{
@@ -925,11 +895,7 @@ src/infrastructure/datasource/AggregateTransactionDataSource.ts の requestCompl
 
 
 
-AggregateTransaction.createComplete を利用してアグリゲートコンプリートを行います。
-
-
-
-第2引数に複数のトランザクションを指定します。
+AggregateTransaction.createComplete を利用してアグリゲートコンプリートを行います。第2引数に複数のトランザクションを指定します。
 
 
 //emlist[][typescript]{
@@ -987,7 +953,7 @@ async requestComplete(privateKey: string, aggregateTransactions: any[]): Promise
 
 
 
-src/infrastructure/datasource/AssetExchangeUseCase.ts の createAsset 関数を実装していきます。
+src/domain/usecase/AssetExchangeUseCase.ts の createAsset 関数を実装していきます。
 
 
 
@@ -1029,7 +995,7 @@ const mosaicToNamespaceTxAggregate = await this.namespaceRepository.createMosaic
 //}
 
 
-そしてこれらのトランザクションをアグリゲートコンプリートとしてリクエストします。
+そして、これらのトランザクションをアグリゲートコンプリートとしてリクエストします。
 
 
 //emlist[][typescript]{
@@ -1084,7 +1050,7 @@ async createAsset(asset: AssetCreation) {
 //}
 
 
-AssetExchangePage.vue の画面上のフォームに作成するモザイクの情報を入力してください（TOP画面 Menuの Exchange Asset のリンクから遷移できます）。今回はお手軽に作成できるようネームスペース名と供給量のみ入力できるようにしています。好きなネームスペース名を入力し、供給量を入力後 Create ボタンを選択してください。
+では、モザイクを作成してみましょう。AssetExchangePage.vue の画面上のフォームに作成するモザイクの情報を入力してください（TOP画面 Menuの Exchange Asset のリンクから遷移できます）。今回はお手軽に作成できるようネームスペース名と供給量のみ入力できるようにしています。好きなネームスペース名を入力し、供給量を入力後 Create ボタンを選択してください。
 
 
 
@@ -1104,17 +1070,13 @@ AssetExchangePage.vue の画面上のフォームに作成するモザイクの�
 
 
 
-TOP画面に戻り、残高に反映されているか確認できます。
+TOP画面に戻り、残高に反映されているか確認できます（本当はネームスペース名と残高を表示したかったのですが、ネームスペースの情報取得がまだ対応されていないため、モザイクIDを表示しています）。
 
 
 
 //image[wSqOj9f][]{
 //}
 
-
-
-
-（本当はネームスペース名と残高を表示したかったのですが、ネームスペースの情報取得がまだ対応されていないため、モザイクIDを表示しています）
 
 
 == モザイク送信
@@ -1341,25 +1303,17 @@ https://nemtech.github.io/ja/index.html
 
 
 
+・NEM2 walletサンプルコード
+
+
+
+https://github.com/hukusuke1007/nem2-wallet-workshop-answer
+
+
+
 ・Vue.js公式サイト
 
 
 
 https://jp.vuejs.org/index.html
-
-
-
-・Node.js公式サイト
-
-
-
-https://nodejs.org/ja/
-
-
-
-・サンプルコード
-
-
-
-https://github.com/hukusuke1007/nem2-wallet-workshop-answer
 

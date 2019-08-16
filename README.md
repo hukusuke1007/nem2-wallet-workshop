@@ -796,7 +796,7 @@ async requestComplete(privateKey: string, aggregateTransactions: any[]): Promise
 
 モザイク作成、ネームスペース作成、モザイクとネームスペースの紐付けの処理は実装できたので、これらを操作するロジックを実装します。「オリジナルアセットを作成する」という機能になるため、そのビジネスロジックはdomain層のUseCaseで実装します。
 
-src/infrastructure/datasource/AssetExchangeUseCase.ts の createAsset 関数を実装していきます。
+src/domain/usecase/AssetExchangeUseCase.ts の createAsset 関数を実装していきます。
 
 まずは、ネームスペース名、ウォレットを用意します。
 
