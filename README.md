@@ -491,7 +491,7 @@ map((items) => {
 ```
 
 
-取得したトランザクションを TransferTransaction のみにフィルタリングして、TransferTransactionの場合は TransferTransaction にキャスト変換します。さらに、キャスト変換した TransferTransaction の transactionInfo が TransactionInfo のみにフィルタリングして transactions へ入れて、ストリームへ流します。transactions は 後に配列要素の最後のトランザクションIDを取得するために使用します。
+取得したトランザクションを TransferTransaction のみにフィルタリングして、TransferTransactionの場合は TransferTransaction にキャスト変換します。さらに、キャスト変換した TransferTransaction の transactionInfo が TransactionInfo のみにフィルタリングして transactions へ入れてからストリームへ流します。transactions は 後に配列要素の最後のトランザクションIDを取得するために使用します。
 
 ```typescript
 mergeMap((items) => transactions = items.filter((item) => item instanceof TransferTransaction)
@@ -499,7 +499,7 @@ mergeMap((items) => transactions = items.filter((item) => item instanceof Transf
   .filter((item) => item.transactionInfo !== undefined && item.transactionInfo instanceof TransactionInfo)),
 ```
 
-それぞれのトランザクション履歴から タイムスタンプとモザイクの可分性を取得します。zip を用いて並列リクエストを行いストリームへ流します。第1引数は今までストリームから流れてきたトランザクション履歴、第2引数はトランザクションIDのブロック取得API、第3引数はモザイク情報を取得APIです。
+それぞれのトランザクション履歴から タイムスタンプとモザイクの可分性を取得します。zip を用いて並列処理でストリームへ流します。第1引数は今までストリームから流れてきたトランザクション履歴、第2引数はトランザクションIDのブロック取得API、第3引数はモザイク情報を取得APIです。
 
 なお、今回はトランザクション履歴には１つのモザイクのみを扱う前提で実装しています。複数のモザイクが入ったトランザクション履歴がある場合は期待通りに動作しませんのであらかじめご了承ください。
 
