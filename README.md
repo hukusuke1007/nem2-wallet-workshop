@@ -5,9 +5,9 @@
 初めまして、shoheiです。iOS/Android/Webアプリ開発をしているフリーランスエンジニアです。また、ブロックチェーンを用いたプロダクト開発も行っております。
 
 
-Vue.js + TypeScript + NEM2-SDKを用いてWebウォレットを作成します。あらかじめ用意している gitリポジトリ を clone してウォレット機能を実装していきます。最後に静的ホスティングサービスの Github Pages を利用して、Web上にNEM2ウォレットを公開します。
+本章では、Vue.js + TypeScript + NEM2-SDKを用いてWebウォレットを作成します。あらかじめ用意している gitリポジトリ を clone してウォレット機能を実装していきます。最後に静的ホスティングサービスの Github Pages を利用して、Web上にNEM2ウォレットを公開します。
 
-本解説は macOS 環境下を前提に解説しています。
+macOS 環境下を前提に解説しています。
 
 ### 目次
 
@@ -48,7 +48,7 @@ npm install -g @vue/cli
 
 ```bash
 node --version
-v10.15.1vue
+v10.15.1
 
 npm --version
 6.4.1
@@ -260,7 +260,7 @@ const wallet = new Wallet(
 ```
 
 
-ブラウザ上のローカルストレージに保存します。保存形式はJSON形式で保存します。
+ブラウザ上のローカルストレージに保存します。ローカルストレージの操作は localForage のライブラリを利用します。保存形式はJSONです。
 
 ```typescript
 await localForage.setItem(this.localStorageKey, wallet.toJSON())
@@ -742,7 +742,8 @@ createMosaicToNamespaceTxAggregate(privateKey: string, namespace: string, mosaic
 ### アグリゲートトランザクション
 
 複数のトランザクションを一括で処理できるアグリゲートトランザクションを実装します。
-一括で処理できるアグリゲートトランザクションを**アグリゲートコンプリート**と呼びます。要求されているトランザクションを参加者全員が署名するとコンプリートになるトランザクションです。
+一括で処理できるアグリゲートトランザクションを@<strong>{アグリゲートコンプリート}と呼びます。複数のトランザクションを1つにまとめてリクエストできます。リクエストされたトランザクションに関わる全員が署名するとブロックチエーンに書き込まれます。
+
 
 src/infrastructure/datasource/AggregateTransactionDataSource.ts の requestComplete 関数を実装していきます。
 
@@ -811,7 +812,6 @@ const namespace = asset.namespace
 
 ```typescript
 const status = await this.namespaceRepository.loadNamespace(namespace)
-console.log('status', status)
 if (status !== undefined) {
   return 'Already exist namespace.'
 }
@@ -854,7 +854,6 @@ async createAsset(asset: AssetCreation) {
     const namespace = asset.namespace
 
     const status = await this.namespaceRepository.loadNamespace(namespace)
-    console.log('status', status)
     if (status !== undefined) {
       return 'Already exist namespace.'
     }
